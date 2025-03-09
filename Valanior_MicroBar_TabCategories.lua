@@ -1,67 +1,126 @@
 --[[
-  Tab System for switching between RuneCollection and DungeonJournalFrame.
-  Both frames will have a tab bar at the bottom left with two tabs:
-    - “Rune Collection” (with an icon, e.g. a rune icon)
-    - “Dungeon Journal” (with an icon, e.g. a book icon)
-  When switching, the new frame is repositioned to the same anchor point as the one being replaced.
+  TabSystem.lua
+  A tab system for switching between RuneCollection and DungeonJournalFrame.
+  Uses only Blizzard assets.
 --]]
 
+-- Helper function to safely create frames with a backdrop template if available.
+local function SafeCreateFrame(frameType, frameName, parent)
+    local template = (BackdropTemplateMixin and "BackdropTemplate") or nil
+    return CreateFrame(frameType, frameName, parent, template)
+end
+
 local function CreateTabButton(parent, label, iconPath, onClickFunc)
-    local btn = CreateFrame("Button", nil, parent)
-    btn:SetSize(90, 25) -- adjust size as needed
+    local container = SafeCreateFrame("Frame", nil, parent)
+    container:SetSize(90, 30)
+    if BackdropTemplateMixin then
+        container:SetBackdrop({
+            bgFile = nil,  -- No background fill, only a border.
+            edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+            edgeSize = 16, -- Bigger edge size for a thicker border.
+        })
+        container:SetBackdropBorderColor(1, 1, 1, 1)
+    end
 
-    -- Normal (inactive) tab
-    btn:SetNormalTexture("Interface\\PaperDollInfoFrame\\UI-Character-InactiveTab")
-    btn:GetNormalTexture():SetTexCoord(0, 0.5, 0, 0.5)
-    btn:GetNormalTexture():SetVertexColor(0.8, 0.9, 1) -- subtle bluish tint
+    local btn = SafeCreateFrame("Button", nil, container)
+    btn:SetSize(90, 20)
+    btn:SetPoint("CENTER", container, "CENTER")
 
-    -- Highlight tab
-    btn:SetHighlightTexture("Interface\\PaperDollInfoFrame\\UI-Character-Tab-Highlight")
-    btn:GetHighlightTexture():SetTexCoord(0, 1, 0, 0.5)
-    -- If you want to color the highlight:
-    btn:GetHighlightTexture():SetVertexColor(1, 1, 1, 0.25)
+    btn:SetNormalTexture("Interface\\characterAdvancement\\tab_not_active.blp")
+    local normalTexture = btn:GetNormalTexture()
+    normalTexture:SetTexCoord(0.0546875, 0.9375, 0.3671875, 0.578125)
+    normalTexture:SetVertexColor(0.8, 0.9, 1)
 
-    -- Pushed (active) tab
-    btn:SetPushedTexture("Interface\\PaperDollInfoFrame\\UI-Character-ActiveTab")
-    btn:GetPushedTexture():SetTexCoord(0, 0.5, 0, 0.5)
-    btn:GetPushedTexture():SetVertexColor(1, 1, 1)
-    --------------------------------------------------------------------------------------
+    btn:SetHighlightTexture("Interface\\characterAdvancement\\tab_active.blp")
+    local highlightTexture = btn:GetHighlightTexture()
+    highlightTexture:SetTexCoord(0.0546875, 0.9375, 0.3671875, 0.578125)
+    highlightTexture:SetVertexColor(1, 1, 1, 0.3)
 
-    -- Create an icon on the left
-    local icon = btn:CreateTexture(nil, "ARTWORK")
-    icon:SetSize(20, 20)
+    btn:SetPushedTexture("Interface\\characterAdvancement\\tab_active.blp")
+    local pushedTexture = btn:GetPushedTexture()
+    pushedTexture:SetTexCoord(0.0546875, 0.9375, 0.3671875, 0.578125)
+    pushedTexture:SetVertexColor(1, 1, 1)
+
+    local icon = btn:CreateTexture(nil, "OVERLAY")
+    local defaultIconSize = 20
+    if iconPath == "Interface\\Addons\\Valanior_DungeonJournal\\Assets\\tempDungeonIcon.blp" then
+        icon:SetSize(24, 20)
+        icon.origWidth, icon.origHeight = 24, 20
+        icon:SetTexCoord(0, 608 / 1024, 0, 721 / 1024)
+        icon.texCoords = { 0, 608 / 1024, 0, 721 / 1024 }
+    elseif iconPath == "Interface\\Addons\\Valanior_DungeonJournal\\Assets\\tempRuneIcon.blp" then
+        icon:SetSize(defaultIconSize, defaultIconSize)
+        icon.origWidth, icon.origHeight = defaultIconSize, defaultIconSize
+        icon:SetTexCoord(0, 612 / 1024, 0, 857 / 1024)
+        icon.texCoords = { 0, 612 / 1024, 0, 857 / 1024 }
+    else
+        icon:SetSize(defaultIconSize, defaultIconSize)
+        icon.origWidth, icon.origHeight = defaultIconSize, defaultIconSize
+    end
     icon:SetPoint("LEFT", btn, "LEFT", 4, 0)
     icon:SetTexture(iconPath)
     btn.icon = icon
 
-    -- Create the label text to the right of the icon
-    local text = btn:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    text:SetPoint("LEFT", icon, "RIGHT", 4, 0)
+    local text = btn:CreateFontString(nil, "OVERLAY")
+    text:SetFont("Fonts\\FRIZQT__.TTF", 14, "OUTLINE")
+    text:SetPoint("CENTER", icon, "CENTER", 42, 2)
+    text:SetJustifyH("CENTER")
     text:SetText(label)
+    text:SetTextColor(1, 1, 1)
     btn.text = text
 
-    btn:SetScript("OnClick", onClickFunc)
+    btn:SetScript("OnEnter", function(self)
+        if self.icon then
+            self.icon:SetSize(self.icon.origWidth * 1.1, self.icon.origHeight * 1.1)
+            self.icon:SetVertexColor(0.7, 0.7, 1)
+            if self.icon.texCoords then
+                self.icon:SetTexCoord(unpack(self.icon.texCoords))
+            end
+        end
+        if self.text then
+            self.text:SetTextColor(0.7, 0.7, 1)
+        end
+    end)
+    btn:SetScript("OnLeave", function(self)
+        if self.icon then
+            self.icon:SetSize(self.icon.origWidth, self.icon.origHeight)
+            self.icon:SetVertexColor(1, 1, 1)
+            if self.icon.texCoords then
+                self.icon:SetTexCoord(unpack(self.icon.texCoords))
+            end
+        end
+        if self.text then
+            self.text:SetTextColor(1, 1, 1)
+        end
+    end)
 
-    return btn
+    btn:SetScript("OnClick", onClickFunc)
+    container.button = btn -- Store reference to the inner button.
+    return container
 end
 
--- Create a tab bar frame (to be re-parented to whichever frame is active)
 local function CreateTabBar(parent)
-    local tabBar = CreateFrame("Frame", nil, parent)
-    tabBar:SetSize(200, 30) -- adjust as needed
-    tabBar:SetPoint("BOTTOMLEFT", parent, "BOTTOMLEFT", 10, -50)
+    local tabBar = SafeCreateFrame("Frame", nil, parent)
+    if BackdropTemplateMixin then
+        tabBar:SetBackdrop({
+            bgFile = "Interface\\characterAdvancement\\background.blp",
+            edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+            tile = false,
+            tileSize = 16,
+            edgeSize = 32,
+            insets = { left = 4, right = 4, top = 4, bottom = 4 }
+        })
+        tabBar:SetBackdropColor(1, 1, 1, 1)
+        tabBar:SetBackdropBorderColor(0.7, 0.7, 0.7, 1)
+    end
+    tabBar:SetSize(160, 25)
+    tabBar:SetPoint("BOTTOMLEFT", parent, "BOTTOMLEFT", -2, -20)
     return tabBar
 end
 
--- Switch function: reads current position from the visible frame (if any)
--- Hides both frames, then positions and shows the requested one,
--- and re-parents (or creates) the tab bar on the new frame.
 local function SwitchFrame(showFrame)
-    if not showFrame then
-        return
-    end
+    if not showFrame then return end
 
-    -- Determine which frame is currently visible (if any)
     local currentFrame
     if RuneCollection and RuneCollection:IsShown() then
         currentFrame = RuneCollection
@@ -69,7 +128,17 @@ local function SwitchFrame(showFrame)
         currentFrame = DungeonJournalFrame
     end
 
-    -- Save anchor from current visible frame (if any)
+    if currentFrame == showFrame then
+        if showFrame == RuneCollection then
+            showFrame.TabBar.TabRune.button:GetNormalTexture():SetVertexColor(1, 1, 1)
+            showFrame.TabBar.TabDJ.button:GetNormalTexture():SetVertexColor(0.5, 0.5, 0.5)
+        elseif showFrame == DungeonJournalFrame then
+            showFrame.TabBar.TabDJ.button:GetNormalTexture():SetVertexColor(1, 1, 1)
+            showFrame.TabBar.TabRune.button:GetNormalTexture():SetVertexColor(0.5, 0.5, 0.5)
+        end
+        return
+    end
+
     local point, relativeTo, relPoint, x, y = "CENTER", UIParent, "CENTER", 0, 0
     if currentFrame then
         local p1, rTo, rPoint, ox, oy = currentFrame:GetPoint(1)
@@ -78,54 +147,43 @@ local function SwitchFrame(showFrame)
         end
     end
 
-    -- Hide both frames if they exist
     if RuneCollection then RuneCollection:Hide() end
     if DungeonJournalFrame then DungeonJournalFrame:Hide() end
 
-    -- Show the requested frame
     showFrame:ClearAllPoints()
     showFrame:SetPoint(point, relativeTo, relPoint, x, y)
     showFrame:Show()
 
-    -- (Re)Create tab bar if needed
     if not showFrame.TabBar then
         showFrame.TabBar = CreateTabBar(showFrame)
-
         showFrame.TabBar.TabRune = CreateTabButton(
-            showFrame.TabBar, "Rune", "Interface\\Icons\\INV_Misc_Rune_01.blp",
+            showFrame.TabBar, "Rune", "Interface\\Addons\\Valanior_DungeonJournal\\Assets\\tempRuneIcon.blp",
             function() SwitchFrame(RuneCollection) end
         )
         showFrame.TabBar.TabDJ = CreateTabButton(
-            showFrame.TabBar, "Journal", "Interface\\Icons\\INV_Misc_Book_01.blp",
+            showFrame.TabBar, "Journal", "Interface\\Addons\\Valanior_DungeonJournal\\Assets\\tempDungeonIcon.blp",
             function() SwitchFrame(DungeonJournalFrame) end
         )
-
-        showFrame.TabBar.TabRune:SetPoint("LEFT", showFrame.TabBar, "LEFT", 0, 0)
-        showFrame.TabBar.TabDJ:SetPoint("LEFT", showFrame.TabBar.TabRune, "RIGHT", 10, 0)
+        showFrame.TabBar.TabRune:SetPoint("LEFT", showFrame.TabBar, "LEFT", 7, 0)
+        showFrame.TabBar.TabDJ:SetPoint("LEFT", showFrame.TabBar.TabRune, "RIGHT", 5, 0)
     else
-        -- Just re-parent the existing tab bar
         showFrame.TabBar:SetParent(showFrame)
         showFrame.TabBar:ClearAllPoints()
-        showFrame.TabBar:SetPoint("BOTTOMLEFT", showFrame, "BOTTOMLEFT", 10, 10)
+        showFrame.TabBar:SetPoint("BOTTOMLEFT", showFrame, "BOTTOMLEFT", -2, -20)
         showFrame.TabBar:Show()
     end
 
-    -- Update tab appearances (nil-check to avoid errors)
     if showFrame == RuneCollection and showFrame.TabBar and showFrame.TabBar.TabRune and showFrame.TabBar.TabDJ then
-        showFrame.TabBar.TabRune:GetNormalTexture():SetVertexColor(1, 1, 1)
-        showFrame.TabBar.TabDJ:GetNormalTexture():SetVertexColor(0.5, 0.5, 0.5)
+        showFrame.TabBar.TabRune.button:GetNormalTexture():SetVertexColor(1, 1, 1)
+        showFrame.TabBar.TabDJ.button:GetNormalTexture():SetVertexColor(0.5, 0.5, 0.5)
     elseif showFrame == DungeonJournalFrame and showFrame.TabBar and showFrame.TabBar.TabRune and showFrame.TabBar.TabDJ then
-        showFrame.TabBar.TabDJ:GetNormalTexture():SetVertexColor(1, 1, 1)
-        showFrame.TabBar.TabRune:GetNormalTexture():SetVertexColor(0.5, 0.5, 0.5)
+        showFrame.TabBar.TabDJ.button:GetNormalTexture():SetVertexColor(1, 1, 1)
+        showFrame.TabBar.TabRune.button:GetNormalTexture():SetVertexColor(0.5, 0.5, 0.5)
     end
 end
 
--- Example usage:
--- When your addon loads, you might want to default to one frame (e.g., RuneCollection).
 if RuneCollection then
     SwitchFrame(RuneCollection)
-else
-    if DungeonJournalFrame then
-        SwitchFrame(DungeonJournalFrame)
-    end
+elseif DungeonJournalFrame then
+    SwitchFrame(DungeonJournalFrame)
 end

@@ -3,7 +3,6 @@
 -- ##################################################################
 debugPrint("Starting creation of Utility")
 
--- Define local implementations
 local function IsInList(tbl, value)
     for _, v in ipairs(tbl) do
         if v == value then
@@ -18,10 +17,35 @@ local function GetCurrentClass()
     return englishClass
 end
 
--- Returns a union of all known armor types
+local function NormalizeItemType(itemType, itemSubType, equipLoc)
+    -- If item is "Armor" but actually a shield/off-hand, force them to be "Weapon" with a matching subType.
+    if itemType == "Armor" then
+        if itemSubType == "Shields" then
+            itemType = "Weapon"
+            itemSubType = "Shield" -- user must have "Shield" in allowedWeaponType
+        elseif equipLoc == "INVTYPE_HOLDABLE" and itemSubType == "Miscellaneous" then
+            itemType = "Weapon"
+            itemSubType = "Off-hand" -- user must have "Off-hand" in allowedWeaponType
+        end
+    end
+
+    -- If itemType=="Weapon" and subType=="Daggers", user must have "Daggers" in allowedWeaponType
+    -- If you have more cases (e.g. "Wands"), unify them similarly.
+
+    return itemType, itemSubType
+end
+
+-- Always include base: Cloth, Leather, Mail, Plate
 local function GetAllArmorTypes()
-    local union, seen = {}, {}
     debugPrint("GetAllArmorTypes called.")
+    local baseArmor = { "Cloth", "Leather", "Mail", "Plate" }
+    local union, seen = {}, {}
+
+    for _, armorType in ipairs(baseArmor) do
+        seen[armorType] = true
+        table.insert(union, armorType)
+    end
+
     if Valanior_DJ.allowedArmorType then
         for className, armorList in pairs(Valanior_DJ.allowedArmorType) do
             debugPrint("  Checking class:", className, armorList and (#armorList .. " entries") or "nil list")
@@ -35,12 +59,12 @@ local function GetAllArmorTypes()
             end
         end
     end
+
     table.sort(union)
     debugPrint("  Returning union of armor types:", table.concat(union, ", "))
     return union
 end
 
--- Returns all weapon types for the current class
 local function GetAllWeaponTypes()
     local union, seen = {}, {}
     local currentClass = GetCurrentClass()
@@ -57,45 +81,78 @@ local function GetAllWeaponTypes()
     return union
 end
 
--- Checks if an item is equippable by the current class based on armor/weapon filters
-local function IsItemEquippableByClass(itemID)
-    local itemName, _, _, _, _, itemType, itemSubType, _, equipLoc = GetItemInfo(itemID)
+function IsItemEquippableByClass(itemID, filterIcon)
+    local itemName, link, quality, _, _, itemType, itemSubType, _, equipLoc = GetItemInfo(itemID)
     if not itemName then
-        debugPrint("IsItemEquippableByClass:", itemID, "not cached yet, returning false.")
+        debugPrint("IsItemEquippableByClass:", itemID, "not cached => false")
         return false
     end
 
-    local cClass      = GetCurrentClass()
-    local armorTypes  = Valanior_DJ.allowedArmorType and Valanior_DJ.allowedArmorType[cClass] or {}
-    local weaponTypes = Valanior_DJ.allowedWeaponType and Valanior_DJ.allowedWeaponType[cClass] or {}
+    local cClass       = GetCurrentClass()
+    local armorTypes   = Valanior_DJ.allowedArmorType and Valanior_DJ.allowedArmorType[cClass] or {}
+    local weaponTypes  = Valanior_DJ.allowedWeaponType and Valanior_DJ.allowedWeaponType[cClass] or {}
+    local allowedSlots = Valanior_DJ.allowedArmorSlots or {}
+
+    -- If user hasn't filtered subTypes => pass
+    if (#armorTypes == 0) and (#weaponTypes == 0) then
+        return true
+    end
+
+    -- If filterIcon=="Weapons" => skip armor checks
+    -- If filterIcon=="Armor" => skip weapon checks
     local armorCount  = #armorTypes
     local weaponCount = #weaponTypes
+    if filterIcon == "Weapons" then
+        armorCount = 0
+    elseif filterIcon == "Armor" then
+        weaponCount = 0
+    end
 
-    -- If no armor is selected and we do have weapons, skip armor items
-    if armorCount == 0 and weaponCount > 0 then
-        if itemType ~= "Weapon" then
-            return false
-        end
-        -- If no weapon is selected and we do have armor, skip weapon items
-    elseif weaponCount == 0 and armorCount > 0 then
+    if (armorCount > 0) and (weaponCount == 0) then
         if itemType ~= "Armor" then
-            return false
+            -- except special: if itemType=="Armor" but subType=="Shields"/holdable => considered weapon
+            if not (itemSubType == "Shields" or equipLoc == "INVTYPE_HOLDABLE") then
+                return false
+            end
+        end
+    elseif (weaponCount > 0) and (armorCount == 0) then
+        if itemType ~= "Weapon" then
+            if not (itemSubType == "Shields" or equipLoc == "INVTYPE_HOLDABLE") then
+                return false
+            end
         end
     end
 
-    if itemType == "Armor" then
-        local allowedSlots = Valanior_DJ.allowedArmorSlots or {}
-        if armorCount == 0 or next(allowedSlots) == nil then
-            return true
+    -- Check Weapons (Shields/Off-hand) logic
+    if itemType == "Armor" and (itemSubType == "Shields" or equipLoc == "INVTYPE_HOLDABLE") then
+        if #weaponTypes == 0 then
+            return false
         end
-        local typeOK = false
-        for _, t in ipairs(armorTypes) do
-            if itemSubType == t then
-                typeOK = true
-                break
+        for _, wType in ipairs(weaponTypes) do
+            if (itemSubType == "Shields" and wType == "Shield") or
+                (equipLoc == "INVTYPE_HOLDABLE" and wType == "Off-hand") then
+                return true
             end
         end
-        local equipLocToSlotKey = {
+        return false
+    end
+
+    -- If item is "Weapon"
+    if itemType == "Weapon" then
+        if #weaponTypes == 0 then
+            return true
+        end
+        for _, wType in ipairs(weaponTypes) do
+            if wType == itemSubType then
+                return true
+            end
+        end
+        return false
+    end
+
+    -- If item is "Armor"
+    if itemType == "Armor" then
+        local slotMap = {
             INVTYPE_HEAD     = "Head",
             INVTYPE_NECK     = "Neck",
             INVTYPE_SHOULDER = "Shoulder",
@@ -111,27 +168,38 @@ local function IsItemEquippableByClass(itemID)
             INVTYPE_FINGER   = "Finger",
             INVTYPE_TRINKET  = "Trinket",
         }
-        local slotKey = equipLocToSlotKey[equipLoc or ""]
-        if typeOK and slotKey and allowedSlots[slotKey] then
-            return true
-        else
+        local slotKey = slotMap[equipLoc or ""]
+        if not slotKey then
             return false
         end
-    elseif itemType == "Weapon" then
-        local typeOK = false
-        for _, t in ipairs(weaponTypes) do
-            if itemSubType == t then
-                typeOK = true
-                break
+
+        -- Special: if slotKey=="Back", ignore armor type
+        if slotKey == "Back" then
+            -- Just check if user toggled "Back" in allowedArmorSlots
+            return (allowedSlots[slotKey] == true)
+        end
+
+        -- Otherwise must match user’s chosen subType
+        if #armorTypes > 0 then
+            local found = false
+            for _, t in ipairs(armorTypes) do
+                if t == itemSubType then
+                    found = true
+                    break
+                end
+            end
+            if not found then
+                return false
             end
         end
-        return typeOK
+
+        -- Then check the slot
+        return (allowedSlots[slotKey] == true)
     end
 
     return true
 end
 
--- Simple item caching by forcing the tooltip to load
 local function CacheItem(itemID)
     local tip = CreateFrame("GameTooltip", "CacheTooltip" .. itemID, nil, "GameTooltipTemplate")
     tip:SetOwner(UIParent, "ANCHOR_NONE")
@@ -165,7 +233,6 @@ local function PreCacheDungeonVersion(dungeon, version, force)
     end
 end
 
--- Clears spell frames from a container if needed
 local function ClearSpellFrames()
     debugPrint("ClearSpellFrames called.")
     if spellContainer then
@@ -176,9 +243,6 @@ local function ClearSpellFrames()
     end
 end
 
--- ##################################################################
--- # Expose these functions to the global table (_G)
--- ##################################################################
 _G.IsInList                = IsInList
 _G.GetCurrentClass         = GetCurrentClass
 _G.GetAllArmorTypes        = GetAllArmorTypes

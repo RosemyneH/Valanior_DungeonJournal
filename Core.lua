@@ -24,34 +24,34 @@ initFrame:SetScript("OnEvent", function(self, event, arg1)
         local localizedClass, englishClass = UnitClass("player")
         if not settings.allowedArmorType then
             settings.allowedArmorType = {
-                WARRIOR     = { "Plate", "Mail", "Leather", "Shields", "Miscellaneous" },
+                WARRIOR     = { "Plate", "Mail", "Leather", "Miscellaneous" },
                 DEATHKNIGHT = { "Plate", "Mail", "Leather", "Miscellaneous" },
-                PALADIN     = { "Plate", "Mail", "Leather", "Cloth", "Shields", "Miscellaneous" },
+                PALADIN     = { "Plate", "Mail", "Leather", "Cloth", "Miscellaneous" },
                 HUNTER      = { "Mail", "Leather", "Miscellaneous" },
                 ROGUE       = { "Leather", "Miscellaneous" },
                 PRIEST      = { "Cloth", "Miscellaneous" },
-                MAGE        = { "Cloth", "Shields", "Miscellaneous" },
+                MAGE        = { "Cloth", "Miscellaneous" },
                 WARLOCK     = { "Cloth", "Miscellaneous" },
                 DRUID       = { "Leather", "Cloth", "Miscellaneous" },
-                SHAMAN      = { "Mail", "Leather", "Cloth", "Shields", "Miscellaneous" },
+                SHAMAN      = { "Mail", "Leather", "Cloth", "Miscellaneous" },
             }
         end
 
         if not settings.allowedWeaponType then
             settings.allowedWeaponType = {
                 WARRIOR     = { "One-Handed Axes", "Two-Handed Axes", "One-Handed Maces", "Two-Handed Maces",
-                    "One-Handed Swords", "Two-Handed Swords", "Polearms" },
+                    "One-Handed Swords", "Two-Handed Swords", "Polearms", "Shield" },
                 DEATHKNIGHT = { "One-Handed Axes", "Two-Handed Axes", "One-Handed Maces", "Two-Handed Maces",
                     "One-Handed Swords", "Two-Handed Swords", "Polearms" },
                 PALADIN     = { "One-Handed Maces", "One-Handed Swords", "Two-Handed Maces", "Two-Handed Swords",
-                    "Daggers", "Fist Weapons", "Staves" },
+                    "Daggers", "Fist Weapons", "Staves", "Shield" },
                 HUNTER      = { "Bows", "Guns", "Crossbows", "Daggers", "One-Handed Swords", "One-Handed Axes", "Fist Weapons" },
                 ROGUE       = { "Daggers", "Fist Weapons", "One-Handed Swords", "One-Handed Axes" },
                 PRIEST      = { "Daggers", "Staves", "Wands", "One-Handed Maces" },
-                MAGE        = { "Daggers", "Staves", "Wands", "One-Handed Swords", "Two-Handed Swords" },
+                MAGE        = { "Daggers", "Staves", "Wands", "One-Handed Swords", "Two-Handed Swords", "Shield" },
                 WARLOCK     = { "Daggers", "Staves", "Wands", "One-Handed Swords" },
                 DRUID       = { "Daggers", "Fist Weapons", "Staves", "One-Handed Maces" },
-                SHAMAN      = { "One-Handed Axes", "One-Handed Maces", "Two-Handed Maces", "Staves", "Daggers", "Fist Weapons" },
+                SHAMAN      = { "One-Handed Axes", "One-Handed Maces", "Two-Handed Maces", "Staves", "Daggers", "Fist Weapons", "Shield" },
             }
         end
 
@@ -129,56 +129,3 @@ end
 -- Example config slash (remove if unneeded)
 
 debugPrint("Core.lua => Global variables set.")
-
---------------------------------------------------------------------
--- Caching NPCs for djDungeons
---------------------------------------------------------------------
---[[
-    Caching Function:
-    This function iterates over _G.Valanior.djDungeons.bosses and runs the caching command on each boss's NPCID.
-    It uses GameTooltip:SetHyperlink to force the caching of unit data.
-    The function is guarded by _G.Valanior_DJ.hasCachedNPCs so it runs only once.
---]]
-local function CacheDjDungeonsNPCs()
-    local djDungeons = _G.Valanior and _G.Valanior.djDungeons
-    if not djDungeons then
-        debugPrint("No djDungeons data found.")
-        return
-    end
-
-    debugPrint("Caching NPCs... Found:", #djDungeons)
-
-    for _, boss in ipairs(djDungeons) do
-        debugPrint(" => boss.bosses", #boss.bosses)
-        for _, v in ipairs(boss.bosses) do
-            local tempModel = CreateFrame("PlayerModel", nil, UIParent)
-            tempModel:SetSize(1, 1)                                          -- Tiny, hidden
-            tempModel:SetPoint("TOPLEFT", UIParent, "TOPLEFT", -1000, -1000) -- Off-screen
-            tempModel:SetCreature(v.bossID)                                  -- Load model
-
-            -- Clear and hide after a delay
-            if not C_Timer then
-                C_Timer = {}
-                function C_Timer.After(delay, func)
-                    local f = CreateFrame("Frame")
-                    f.elapsed = 0
-                    f:SetScript("OnUpdate", function(self, elapsed)
-                        self.elapsed = self.elapsed + elapsed
-                        if self.elapsed >= delay then
-                            func()
-                            self:SetScript("OnUpdate", nil)
-                        end
-                    end)
-                end
-            end
-        end
-    end
-    debugPrint("NPC caching complete.")
-end
-
--- Register an event so that the caching function is called once after PLAYER_LOGIN.
-local cacheFrame = CreateFrame("Frame")
-cacheFrame:RegisterEvent("PLAYER_LOGIN")
-cacheFrame:SetScript("OnEvent", function(self, event, ...)
-    CacheDjDungeonsNPCs()
-end)

@@ -21,7 +21,8 @@ for _, dungeon in ipairs(_G.Valanior.djDungeons) do
         end
     end
 end
-
+--[[
+doesnt actually work sadge
 local preloadIndex = 1
 local function PreloadNextBossModel()
     if preloadIndex <= #bossIDs then
@@ -38,8 +39,7 @@ end
 
 -- Start the preloading process.
 PreloadNextBossModel()
-
-
+--]] --
 debugPrint("Starting creation of BossNavigation")
 
 local BOSS_TRANSFORMS = _G.BOSS_TRANSFORMS or {}
@@ -331,6 +331,16 @@ local function CreateBossNavigation(dungeonDetailFrame, dungeon)
     if not bossNav then
         bossNav = CreateFrame("Frame", "DJ_BossNavFrame", dungeonDetailFrame)
         bossNav:SetAllPoints()
+        bossNav:SetMovable(true)
+        bossNav:SetScript("OnDragStart", function(self)
+            debugPrint("bossNav StartMoving")
+            self:StartMoving()
+        end)
+        bossNav:SetScript("OnDragStop", function(self)
+            debugPrint("bossNav StopMoving")
+            self:StopMovingOrSizing()
+        end)
+
         dungeonDetailFrame.bossNav = bossNav
         bossNav.dungeonName = dungeon.name
         debugPrint("Created new bossNav for dungeon:", dungeon.name)

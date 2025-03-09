@@ -7,7 +7,8 @@ DungeonJournalFrame:SetSize(585, 430)
 DungeonJournalFrame:SetPoint("CENTER")
 DungeonJournalFrame:SetClampedToScreen(true)
 DungeonJournalFrame:EnableMouse(true)
--- Drag with L/R
+DungeonJournalFrame:SetMovable(true)
+
 DungeonJournalFrame:RegisterForDrag("LeftButton", "RightButton")
 DungeonJournalFrame:SetScript("OnDragStart", function(self, button)
     if button == "LeftButton" or button == "RightButton" then
@@ -28,11 +29,6 @@ local mainCloseButton = CreateFrame("Button", nil, DungeonJournalFrame, "UIPanel
 mainCloseButton:SetPoint("TOPRIGHT", DungeonJournalFrame, "TOPRIGHT", 4, -4)
 mainCloseButton:SetSize(25, 25)
 
-
---------------------------------------------------------------------------
--- Declare/Initialize your needed global/locals and default settings
---------------------------------------------------------------------------
-
 _G.itemButtonCache    = _G.itemButtonCache or {}
 _G.lastBossNavDungeon = _G.lastBossNavDungeon or nil
 _G.currentDungeon     = _G.currentDungeon or nil
@@ -45,7 +41,7 @@ Valanior_DJ.currentItemPage     = Valanior_DJ.currentItemPage or 1
 Valanior_DJ.currentVersionIndex = Valanior_DJ.currentVersionIndex or 1
 Valanior_DJ.itemSearchQuery     = Valanior_DJ.itemSearchQuery or ""
 
-DJ_Settings.filterType          = DJ_Settings.filterType or "All" -- "All", "Weapons", "Armor"
+DJ_Settings.filterType          = DJ_Settings.filterType or "All"
 DJ_Settings.onlyEquipable       = DJ_Settings.onlyEquipable or false
 
 local searchTooltip             = CreateFrame("GameTooltip", "DJ_ItemSearchTooltip", nil, "GameTooltipTemplate")
@@ -56,42 +52,35 @@ local NUM_COLS           = 2
 local displayedItems     = {}
 local totalPages         = 1
 
-
---------------------------------------------------------------------------
--- Create the interior UI elements (Dropdown, “All Dungeons” check, etc.)
--- AFTER DungeonJournalFrame is created.
---------------------------------------------------------------------------
-
-local versionDropdown = CreateFrame("Frame", "ValaniorDJ_VersionDropdown", DungeonJournalFrame, "UIDropDownMenuTemplate")
-versionDropdown:SetPoint("TOPRIGHT", DungeonJournalFrame, "TOPRIGHT", -25, -40)
+local versionDropdown    = CreateFrame("Frame", "ValaniorDJ_VersionDropdown", DungeonJournalFrame,
+    "UIDropDownMenuTemplate")
+versionDropdown:SetPoint("TOPRIGHT", DungeonJournalFrame, "TOPRIGHT", 0, -30)
 UIDropDownMenu_SetWidth(versionDropdown, 130)
 
 local viewAllButton = CreateFrame("CheckButton", "ValaniorDJ_ViewAllCheckButton", DungeonJournalFrame,
     "UICheckButtonTemplate")
 viewAllButton:SetSize(24, 24)
-viewAllButton:SetPoint("TOPRIGHT", versionDropdown, "TOPLEFT", -5, 5)
+viewAllButton:SetPoint("TOPRIGHT", versionDropdown, "TOPLEFT", -85, 0)
+viewAllButton:SetFrameStrata("DIALOG") -- ensures it's on top
+viewAllButton:SetFrameLevel(DungeonJournalFrame:GetFrameLevel() + 20)
+viewAllButton:EnableMouse(true)
 viewAllButton.text = viewAllButton:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
 viewAllButton.text:SetPoint("LEFT", viewAllButton, "RIGHT", 0, 1)
 viewAllButton.text:SetText("All Dungeons")
-viewAllButton:SetFrameLevel(DungeonJournalFrame:GetFrameLevel() + 20) -- ensure on top
-viewAllButton:EnableMouse(true)
 viewAllButton:SetChecked(Valanior_DJ.viewAllItems)
 
 local toggleEquippableButton = CreateFrame("Button", nil, DungeonJournalFrame, "UIPanelButtonTemplate")
 toggleEquippableButton:SetSize(90, 20)
-toggleEquippableButton:SetPoint("TOPRIGHT", viewAllButton, "TOPLEFT", -40, 0)
-toggleEquippableButton:SetFrameLevel(DungeonJournalFrame:GetFrameLevel() + 20) -- ensure clickable
+toggleEquippableButton:SetPoint("BOTTOMRIGHT", DungeonJournalFrame, "BOTTOMRIGHT", -20, 20)
+toggleEquippableButton:SetFrameStrata("DIALOG")
+toggleEquippableButton:SetFrameLevel(DungeonJournalFrame:GetFrameLevel() + 20)
 toggleEquippableButton:SetText("Equip?")
 
 local filterTypeButton = CreateFrame("Button", nil, DungeonJournalFrame)
 filterTypeButton:SetSize(15, 15)
 filterTypeButton:SetPoint("RIGHT", mainCloseButton, "LEFT", -35, 0)
+filterTypeButton:SetFrameStrata("DIALOG")
 filterTypeButton:SetFrameLevel(DungeonJournalFrame:GetFrameLevel() + 20)
-
-
---------------------------------------------------------------------------
--- Helper: Hide/Show the interior UI
---------------------------------------------------------------------------
 
 local function HideDungeonInteriorUI()
     versionDropdown:Hide()
@@ -106,11 +95,6 @@ local function ShowDungeonInteriorUI()
     toggleEquippableButton:Show()
     filterTypeButton:Show()
 end
-
-
---------------------------------------------------------------------------
--- PREVIEW FRAME (the “grid” of dungeons)
---------------------------------------------------------------------------
 
 local previewFrame = CreateFrame("Frame", "DungeonJournalPreviewFrame", DungeonJournalFrame)
 previewFrame:SetSize(585, 430)
@@ -144,18 +128,13 @@ local dungeonButtonHeight = 90
 gridContainer:SetSize(numDungeonCols * dungeonButtonWidth, 1)
 scrollFrame:SetScrollChild(gridContainer)
 
-
---------------------------------------------------------------------------
--- DUNGEON DETAIL FRAME
---------------------------------------------------------------------------
-
-local dungeonDetailFrame = CreateFrame("Frame", "DungeonDetailFrame", DungeonJournalFrame)
+dungeonDetailFrame = CreateFrame("Frame", "DungeonDetailFrame", DungeonJournalFrame)
 dungeonDetailFrame:SetSize(456, 336)
 dungeonDetailFrame:SetPoint("TOP", DungeonJournalFrame, "TOP", 0, -10)
 dungeonDetailFrame:Hide()
 
 local dungeonTitleText = dungeonDetailFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-dungeonTitleText:SetPoint("TOP", dungeonDetailFrame, "TOP", 0, -10)
+dungeonTitleText:SetPoint("TOP", dungeonDetailFrame, "TOP", 0, 0)
 
 local dungeonDescScrollFrame = CreateFrame("ScrollFrame", "DungeonDescScrollFrame", dungeonDetailFrame,
     "UIPanelScrollFrameTemplate")
@@ -184,12 +163,6 @@ local itemsListContainer = CreateFrame("Frame", "ItemsListContainer", itemsListF
 itemsListContainer:SetSize(400, 340)
 itemsListContainer:SetPoint("TOPLEFT", itemsListFrame, "TOPLEFT")
 
-
---------------------------------------------------------------------------
--- Dropdown, Toggle Buttons, Filter Icon – Hook Up Their Scripts
---------------------------------------------------------------------------
-
--- 1) “All Dungeons” check
 viewAllButton:SetScript("OnClick", function(self)
     Valanior_DJ.viewAllItems = self:GetChecked()
     Valanior_DJ.currentItemPage = 1
@@ -198,10 +171,9 @@ viewAllButton:SetScript("OnClick", function(self)
     end
 end)
 
--- 2) Equippable toggle
 local function UpdateToggleEquippableButtonText()
     if DJ_Settings.onlyEquipable then
-        toggleEquippableButton:SetText("Equippable")
+        toggleEquippableButton:SetText("Filter On")
     else
         toggleEquippableButton:SetText("All items")
     end
@@ -217,15 +189,12 @@ toggleEquippableButton:SetScript("OnClick", function()
     end
 end)
 
--- 3) Filter type icon (All / Weapons / Armor)
 local filterTypeOptions = {
     { state = "All",     icon = "Interface\\Icons\\INV_Misc_QuestionMark" },
     { state = "Weapons", icon = "Interface\\Icons\\INV_Sword_04" },
     { state = "Armor",   icon = "Interface\\Icons\\INV_Chest_Leather_05" },
 }
 local currentFilterIndex = 1
-
--- Find default index
 for i, v in ipairs(filterTypeOptions) do
     if v.state == DJ_Settings.filterType then
         currentFilterIndex = i
@@ -250,6 +219,7 @@ local function UpdateFilterTypeButton()
     else
         DJ_Settings.onlyEquipable = false
     end
+
     UpdateToggleEquippableButtonText()
 end
 
@@ -262,18 +232,12 @@ filterTypeButton:SetScript("OnClick", function()
     end
 
     UpdateFilterTypeButton()
-
     Valanior_DJ.currentItemPage = 1
 
     if _G.currentDungeon then
         LoadDungeonDetail(_G.currentDungeon, Valanior_DJ.currentVersionIndex)
     end
 end)
-
-
---------------------------------------------------------------------------
--- Version Dropdown - Declaration & Hook
---------------------------------------------------------------------------
 
 local function DungeonVersion_OnSelect(self)
     local newIndex = self.value
@@ -297,18 +261,15 @@ local function ToggleAll(list, boolMap)
 end
 
 local function UpdateFilterDropdownSummary()
-    local filterIcon = DJ_Settings.filterType or "All" -- "All","Weapons","Armor"
+    local filterIcon = DJ_Settings.filterType or "All"
     local summaryText
-
     if filterIcon == "All" then
         summaryText = "Showing All Items"
     elseif filterIcon == "Weapons" then
-        -- Example: how many weapon types for current class?
         local cClass = GetCurrentClass()
         local allowed = (Valanior_DJ.allowedWeaponType and Valanior_DJ.allowedWeaponType[cClass]) or {}
         summaryText = "Showing " .. #allowed .. " Weapons"
     elseif filterIcon == "Armor" then
-        -- Example: how many slots are toggled on?
         local allowedSlots = Valanior_DJ.allowedArmorSlots or {}
         local countOn = 0
         for _, slot in ipairs(_G.armorSlotList or {}) do
@@ -318,7 +279,6 @@ local function UpdateFilterDropdownSummary()
         end
         summaryText = "Showing " .. countOn .. " Slots"
     end
-
     UIDropDownMenu_SetText(versionDropdown, summaryText)
 end
 
@@ -330,37 +290,33 @@ local function VersionDropdown_Initialize(self, level, menuList)
         local info = UIDropDownMenu_CreateInfo()
         info.text = "Dungeon Versions"
         info.notCheckable = true
-        info.hasArrow = true
+        info.hasArrow = 1
         info.menuList = "VERSIONS"
         UIDropDownMenu_AddButton(info, level)
 
         info = UIDropDownMenu_CreateInfo()
         info.text = "Armor Slots"
         info.notCheckable = true
-        info.hasArrow = true
+        info.hasArrow = 1
         info.menuList = "ARMOR_SLOTS"
         UIDropDownMenu_AddButton(info, level)
 
         info = UIDropDownMenu_CreateInfo()
         info.text = "Armor Types"
         info.notCheckable = true
-        info.hasArrow = true
+        info.hasArrow = 1
         info.menuList = "ARMOR_TYPES"
         UIDropDownMenu_AddButton(info, level)
 
         info = UIDropDownMenu_CreateInfo()
         info.text = "Weapon Types"
         info.notCheckable = true
-        info.hasArrow = true
+        info.hasArrow = 1
         info.menuList = "WEAPON_TYPES"
         UIDropDownMenu_AddButton(info, level)
 
-        -- We can set the summary text each time it opens:
         UpdateFilterDropdownSummary()
     elseif level == 2 then
-        ----------------------------------------------------------------
-        -- VERSIONS
-        ----------------------------------------------------------------
         if menuList == "VERSIONS" then
             local d = _G.currentDungeon
             if not d or not d.versions or #d.versions == 0 then
@@ -380,10 +336,6 @@ local function VersionDropdown_Initialize(self, level, menuList)
                     UIDropDownMenu_AddButton(info, level)
                 end
             end
-
-            ----------------------------------------------------------------
-            -- ARMOR SLOTS
-            ----------------------------------------------------------------
         elseif menuList == "ARMOR_SLOTS" then
             local info = UIDropDownMenu_CreateInfo()
             info.text = "Toggle All Slots"
@@ -409,7 +361,6 @@ local function VersionDropdown_Initialize(self, level, menuList)
                 info.func = function()
                     Valanior_DJ.allowedArmorSlots = Valanior_DJ.allowedArmorSlots or {}
                     Valanior_DJ.allowedArmorSlots[slot] = not Valanior_DJ.allowedArmorSlots[slot]
-
                     DJ_Settings.onlyEquipable = true
                     if _G.currentDungeon then
                         LoadDungeonDetail(_G.currentDungeon, Valanior_DJ.currentVersionIndex)
@@ -420,10 +371,6 @@ local function VersionDropdown_Initialize(self, level, menuList)
                 if ic then info.icon = ic end
                 UIDropDownMenu_AddButton(info, level)
             end
-
-            ----------------------------------------------------------------
-            -- ARMOR TYPES
-            ----------------------------------------------------------------
         elseif menuList == "ARMOR_TYPES" then
             local info = UIDropDownMenu_CreateInfo()
             info.text = "Toggle All Armor Types"
@@ -432,14 +379,11 @@ local function VersionDropdown_Initialize(self, level, menuList)
                 local union = _G.GetAllArmorTypes() or {}
                 Valanior_DJ.allowedArmorType = Valanior_DJ.allowedArmorType or {}
                 Valanior_DJ.allowedArmorType[cClass] = Valanior_DJ.allowedArmorType[cClass] or {}
-
                 local boolMap = {}
                 for _, v in ipairs(Valanior_DJ.allowedArmorType[cClass]) do
                     boolMap[v] = true
                 end
-
                 ToggleAll(union, boolMap)
-
                 local newArr = {}
                 for _, v in ipairs(union) do
                     if boolMap[v] then
@@ -448,7 +392,6 @@ local function VersionDropdown_Initialize(self, level, menuList)
                 end
                 Valanior_DJ.allowedArmorType[cClass] = newArr
                 DJ_Settings.onlyEquipable = true
-
                 if _G.currentDungeon then
                     LoadDungeonDetail(_G.currentDungeon, Valanior_DJ.currentVersionIndex)
                 end
@@ -475,7 +418,6 @@ local function VersionDropdown_Initialize(self, level, menuList)
                     if not found then
                         table.insert(allowed, armorType)
                     end
-
                     Valanior_DJ.allowedArmorType[cClass] = allowed
                     DJ_Settings.onlyEquipable = true
                     if _G.currentDungeon then
@@ -483,13 +425,9 @@ local function VersionDropdown_Initialize(self, level, menuList)
                     end
                     UpdateFilterDropdownSummary()
                 end
-                info.icon = ("Interface\\Icons\\INV_Armor_" .. armorType)
+                info.icon = "Interface\\Icons\\INV_Armor_" .. armorType
                 UIDropDownMenu_AddButton(info, level)
             end
-
-            ----------------------------------------------------------------
-            -- WEAPON TYPES
-            ----------------------------------------------------------------
         elseif menuList == "WEAPON_TYPES" then
             local info = UIDropDownMenu_CreateInfo()
             info.text = "Toggle All Weapon Types"
@@ -498,14 +436,11 @@ local function VersionDropdown_Initialize(self, level, menuList)
                 local union = _G.weaponTypeList or {}
                 Valanior_DJ.allowedWeaponType = Valanior_DJ.allowedWeaponType or {}
                 Valanior_DJ.allowedWeaponType[cClass] = Valanior_DJ.allowedWeaponType[cClass] or {}
-
                 local boolMap = {}
                 for _, v in ipairs(Valanior_DJ.allowedWeaponType[cClass]) do
                     boolMap[v] = true
                 end
-
                 ToggleAll(union, boolMap)
-
                 local newArr = {}
                 for _, v in ipairs(union) do
                     if boolMap[v] then
@@ -514,7 +449,6 @@ local function VersionDropdown_Initialize(self, level, menuList)
                 end
                 Valanior_DJ.allowedWeaponType[cClass] = newArr
                 DJ_Settings.onlyEquipable = true
-
                 if _G.currentDungeon then
                     LoadDungeonDetail(_G.currentDungeon, Valanior_DJ.currentVersionIndex)
                 end
@@ -541,7 +475,6 @@ local function VersionDropdown_Initialize(self, level, menuList)
                     if not found then
                         table.insert(allowed, wType)
                     end
-
                     Valanior_DJ.allowedWeaponType[cClass] = allowed
                     DJ_Settings.onlyEquipable = true
                     if _G.currentDungeon then
@@ -558,11 +491,6 @@ local function VersionDropdown_Initialize(self, level, menuList)
 end
 
 UIDropDownMenu_Initialize(versionDropdown, VersionDropdown_Initialize)
-
-
---------------------------------------------------------------------------
--- PAGE NAVIGATION + ITEM SEARCH BOX
---------------------------------------------------------------------------
 
 local pageNavigationFrame = CreateFrame("Frame", "DJ_ItemPageNavFrame", itemsListFrame)
 pageNavigationFrame:SetSize(400, 25)
@@ -618,17 +546,12 @@ itemsListFrame:SetScript("OnMouseWheel", function(self, delta)
     end
 end)
 
-
---------------------------------------------------------------------------
--- BACK BUTTON
---------------------------------------------------------------------------
-
 local backButton = CreateFrame("Button", nil, DungeonJournalFrame)
 backButton:SetSize(20, 20)
-backButton:SetPoint("RIGHT", mainCloseButton, "LEFT", -10, 0)
+backButton:SetPoint("TOPRIGHT", DungeonJournalFrame, "TOPRIGHT", -12, -9)
 
 local backFont = backButton:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-backFont:SetText("<")
+backFont:SetText("<  ")
 backFont:SetPoint("CENTER", backButton, "CENTER", 0, 3)
 
 local backTex = backButton:CreateTexture(nil, "BACKGROUND")
@@ -647,18 +570,12 @@ backButton:SetScript("OnClick", function()
         dungeonDetailFrame:Hide()
         previewFrame:Show()
         HideDungeonInteriorUI()
-
         viewAllButton:Enable()
     elseif previewFrame:IsShown() then
         if RuneCollection then RuneCollection:Show() end
         DungeonJournalFrame:Hide()
     end
 end)
-
-
---------------------------------------------------------------------------
--- HELPER: Acquire/Hide item buttons
---------------------------------------------------------------------------
 
 local function AcquireItemButton(dIndex, iIndex)
     _G.itemButtonCache[dIndex] = _G.itemButtonCache[dIndex] or {}
@@ -732,11 +649,6 @@ local function HideAllItemButtons()
     end
 end
 
-
---------------------------------------------------------------------------
--- RE-CACHE IF ITEM NOT LOADED
---------------------------------------------------------------------------
-
 local function HandleUncachedItem(adjItemID, dungeon, versionData)
     debugPrint("HandleUncachedItem =>", adjItemID)
     if not Valanior_DJ.recacheScheduled then
@@ -754,11 +666,6 @@ local function HandleUncachedItem(adjItemID, dungeon, versionData)
         end)
     end
 end
-
-
---------------------------------------------------------------------------
--- PREPAREITEMSTOSHOW: logic for equippable + filter + viewAllItems, etc.
---------------------------------------------------------------------------
 
 local function GetVersionModifierForDungeon(dungeon, versionIndex)
     if dungeon.versions and dungeon.versions[versionIndex] then
@@ -783,20 +690,13 @@ local function PassesFilterIcon(iType, iSubType, eLoc, filterIcon)
     end
 
     if filterIcon == "Weapons" then
-        -- Wands are iType="Weapon", iSubType="Wands" (already covered by iType=="Weapon")
-        -- Shields are iType="Armor", iSubType="Shields"
-        -- Off-hand frills are iType="Armor", iSubType="Misc", eLoc="INVTYPE_HOLDABLE"
-        if iType == "Weapon" then
-            return true
-        end
+        if iType == "Weapon" then return true end
         if iType == "Armor" and (iSubType == "Shields" or eLoc == "INVTYPE_HOLDABLE") then
             return true
         end
-        return false
     end
 
     if filterIcon == "Armor" then
-        -- Exclude shields/off-hands from "Armor" filter if you want them under Weapons
         if iType == "Armor" and iSubType ~= "Shields" and eLoc ~= "INVTYPE_HOLDABLE" then
             return true
         end
@@ -809,6 +709,7 @@ end
 
 function PrepareItemsToShow(dungeon, versionIndex)
     local itemsToShow = {}
+    local filterIcon = DJ_Settings.filterType or "All"
 
     if Valanior_DJ.viewAllItems then
         for _, d in ipairs(_G.dungeonData or {}) do
@@ -881,33 +782,26 @@ function PrepareItemsToShow(dungeon, versionIndex)
         return itemsToShow
     end
 
-    local finalItems = {}
-    local filterIcon = DJ_Settings.filterType or "All"
-
+    local final = {}
     for _, info in ipairs(itemsToShow) do
         local adjID = info.isSpecial and info.baseID or (info.baseID + (info.versionMod or 0))
-        if IsItemEquippableByClass(adjID) then
-            local name, link, quality, _, _, iType, iSubType, _, eLoc = GetItemInfo(adjID)
-            if not name then
+
+        if IsItemEquippableByClass(adjID, filterIcon) then
+            local iName, _, _, _, _, iType, iSubType, _, eLoc = GetItemInfo(adjID)
+            if not iName then
                 iType, iSubType, eLoc = "", "", ""
             end
             if PassesFilterIcon(iType, iSubType, eLoc, filterIcon) then
-                table.insert(finalItems, info)
+                table.insert(final, info)
             end
         end
     end
 
-    return finalItems
+    return final
 end
-
---------------------------------------------------------------------------
--- DISPLAYITEMSLIST
---------------------------------------------------------------------------
 
 local function DisplayItemsList(dungeon, versionIndex, itemsToShow)
     wipe(displayedItems)
-
-    -- 1) Search name+tooltip
     local query = (Valanior_DJ.itemSearchQuery or ""):lower()
     if query ~= "" then
         local filtered = {}
@@ -915,7 +809,6 @@ local function DisplayItemsList(dungeon, versionIndex, itemsToShow)
             local adjID = info.isSpecial and info.baseID or (info.baseID + (info.versionMod or 0))
             local iName = GetItemInfo(adjID) or ""
             local nameLower = iName:lower()
-
             searchTooltip:ClearLines()
             searchTooltip:SetHyperlink("item:" .. adjID)
             local tooltipText = ""
@@ -926,7 +819,6 @@ local function DisplayItemsList(dungeon, versionIndex, itemsToShow)
                 local rt        = rightLine and rightLine:GetText() or ""
                 tooltipText     = tooltipText .. lt:lower() .. "\n" .. rt:lower() .. "\n"
             end
-
             if nameLower:find(query, 1, true) or tooltipText:find(query, 1, true) then
                 table.insert(filtered, info)
             end
@@ -939,7 +831,9 @@ local function DisplayItemsList(dungeon, versionIndex, itemsToShow)
     end
 
     totalPages = math.ceil(#displayedItems / MAX_ITEMS_PER_PAGE)
-    if totalPages < 1 then totalPages = 1 end
+    if totalPages < 1 then
+        totalPages = 1
+    end
     if Valanior_DJ.currentItemPage > totalPages then
         Valanior_DJ.currentItemPage = totalPages
     end
@@ -961,7 +855,6 @@ local function DisplayItemsList(dungeon, versionIndex, itemsToShow)
         return
     end
 
-    -- 2) Show the slice for this page
     local startIndex = (Valanior_DJ.currentItemPage - 1) * MAX_ITEMS_PER_PAGE + 1
     local endIndex   = math.min(startIndex + MAX_ITEMS_PER_PAGE - 1, #displayedItems)
     local shownItems = 0
@@ -970,7 +863,6 @@ local function DisplayItemsList(dungeon, versionIndex, itemsToShow)
         local info = displayedItems[idx]
         shownItems = shownItems + 1
         local adjID = info.isSpecial and info.baseID or (info.baseID + (info.versionMod or 0))
-
         local iName, iLink, iQuality, _, _, iType, iSubType, _, eLoc, iIcon = GetItemInfo(adjID)
         if not iName then
             HandleUncachedItem(adjID, dungeon, dungeon.versions and dungeon.versions[versionIndex])
@@ -992,7 +884,6 @@ local function DisplayItemsList(dungeon, versionIndex, itemsToShow)
             btn.favoriteIcon:Hide()
         end
 
-        -- 3) Drop location logic
         if info.isSpecial and info.drop then
             btn.dropLocationText:SetText(info.drop)
         else
@@ -1000,7 +891,6 @@ local function DisplayItemsList(dungeon, versionIndex, itemsToShow)
             if Valanior_DJ.viewAllItems then
                 actualDungeon = FindDungeonByName(info.dungeonName)
             end
-
             if actualDungeon and info.idx > 0 and actualDungeon.droplocation then
                 local loc = actualDungeon.droplocation[info.idx]
                 btn.dropLocationText:SetText(loc or "")
@@ -1021,11 +911,6 @@ local function DisplayItemsList(dungeon, versionIndex, itemsToShow)
     itemsListContainer:SetHeight(rowCount * 40 + 10)
 end
 
-
---------------------------------------------------------------------------
--- LOADDUNGEONDETAIL
---------------------------------------------------------------------------
-
 function LoadDungeonDetail(dungeon, versionIndex)
     if not dungeon then return end
     if not versionIndex then
@@ -1036,16 +921,13 @@ function LoadDungeonDetail(dungeon, versionIndex)
     if ShowBoss then
         ShowBoss(dungeon)
     end
-    HideAllItemButtons()
 
+    HideAllItemButtons()
     _G.currentDungeon = dungeon
     DungeonJournalFrame.BackgroundTexture:SetTexture("Interface/Addons/Valanior_DungeonJournal/Assets/interface_open")
     previewFrame:Hide()
     dungeonDetailFrame:Show()
-
-    -- Show the interior UI
     ShowDungeonInteriorUI()
-    viewAllButton:Disable() -- “All Dungeons” is forced false => disable
 
     local titleTextStr
     if dungeon.versions and dungeon.versions[versionIndex] then
@@ -1063,10 +945,6 @@ function LoadDungeonDetail(dungeon, versionIndex)
         _G.lastBossNavDungeon = dungeon
     end
 end
-
---------------------------------------------------------------------------
--- DUNGEON SEARCH (IN PREVIEW FRAME)
---------------------------------------------------------------------------
 
 local dungeonSearchBox = CreateFrame("EditBox", "DJ_SearchEditBox", previewFrame, "InputBoxTemplate")
 dungeonSearchBox:SetSize(150, 20)
@@ -1096,11 +974,6 @@ dungeonSearchBox:SetScript("OnTextChanged", function(self, userInput)
     end
 end)
 
-
---------------------------------------------------------------------------
--- UPDATEDUNGEONNAMES
---------------------------------------------------------------------------
-
 function UpdateDungeonNames()
     for _, btn in ipairs(dungeonButtons) do
         if btn and btn.btnText and btn.dungeon then
@@ -1109,10 +982,6 @@ function UpdateDungeonNames()
         end
     end
 end
-
---------------------------------------------------------------------------
--- CREATE DUNGEON BUTTONS (Preview)
---------------------------------------------------------------------------
 
 do
     local count = #dungeonData
@@ -1151,11 +1020,8 @@ do
             if PreCacheDungeonVersion then
                 PreCacheDungeonVersion(d)
             end
-            -- Force “All Dungeons” false, disable it, and load detail
             viewAllButton:SetChecked(false)
-            viewAllButton:Disable()
             Valanior_DJ.viewAllItems = false
-
             LoadDungeonDetail(d, Valanior_DJ.currentVersionIndex)
         end)
 
@@ -1178,11 +1044,6 @@ do
     end
 end
 
---------------------------------------------------------------------------
--- Finally, hide the interior UI by default so it doesn't appear
--- on the preview frame, then show the previewFrame.
---------------------------------------------------------------------------
-
 HideDungeonInteriorUI()
 previewFrame:Show()
 
@@ -1190,4 +1051,4 @@ _G.DungeonJournalFrame = DungeonJournalFrame
 _G.LoadDungeonDetail   = LoadDungeonDetail
 _G.UpdateDungeonNames  = UpdateDungeonNames
 
-debugPrint("UIFrames.lua => Refactored code to fix dropdown & interior UI issues.")
+debugPrint("UIFrames.lua => Final version with All Dungeons button always clickable.")
