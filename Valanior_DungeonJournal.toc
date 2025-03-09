@@ -1,0 +1,14 @@
+## Interface: 30300
+## Title: Valanior Journal
+## Notes: Displays loot for dungeons.
+## Version: 1.0
+## SavedVariablesPerCharacter: Valanior_DJ
+
+Constants.lua
+Valanior_DJ_Dataset.lua
+Core.lua
+Valanior_DJ_Settings.lua
+Utility.lua
+BossNavigation.lua
+UIFrames.lua
+Valanior_MicroBar_TabCategories.lua

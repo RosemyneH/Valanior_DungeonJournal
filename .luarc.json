@@ -1,0 +1,45 @@
+{
+  "Lua": {
+    "runtime": {
+      "version": "LuaJIT",
+      "path": ["?.lua", "?/init.lua", "./?.lua", "./?/init.lua"]
+    },
+    "diagnostics": {
+      "globals": [
+        "ADDON_NAME",
+        "GetTime",
+        "CreateFrame",
+        "UIParent",
+        "GameTooltip",
+        "InCombatLockdown",
+        "RegisterEvent",
+        "UnregisterEvent",
+        "UnitName",
+        "UnitGUID",
+        "print",
+        "pairs",
+        "ipairs"
+      ],
+      "disable": [
+        "unused-local",
+        "undefined-global",
+        "unused-function",
+        "unused-variable",
+        "unused-label",
+        "unused-loop-var",
+        "lowercase-global"
+      ]
+    },
+    "workspace": {
+      "library": {
+        "/path/to/World of Warcraft/_retail_/Interface": true,
+        "/path/to/World of Warcraft/_retail_/Interface/AddOns": true
+      },
+      "maxPreload": 2000,
+      "preloadFileSize": 1000
+    },
+    "telemetry": {
+      "enable": false
+    }
+  }
+}
