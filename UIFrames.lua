@@ -190,9 +190,9 @@ toggleEquippableButton:SetScript("OnClick", function()
 end)
 
 local filterTypeOptions = {
-    { state = "All",     icon = "Interface\\Icons\\INV_Misc_QuestionMark" },
-    { state = "Weapons", icon = "Interface\\Icons\\INV_Sword_04" },
-    { state = "Armor",   icon = "Interface\\Icons\\INV_Chest_Leather_05" },
+    { state = "All",     icon = "Interface\\Icons\\achievement_kirintor_offensive" },
+    { state = "Weapons", icon = "Interface\\Icons\\inv_2h_auchindoun_01" },
+    { state = "Armor",   icon = "Interface\\Icons\\inv_archaeology_70_demon_houndstoothhauberk" },
 }
 local currentFilterIndex = 1
 for i, v in ipairs(filterTypeOptions) do
