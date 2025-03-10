@@ -3,7 +3,7 @@
 -- ##################################################################
 
 _G.debugPrint = function(msg, ...)
-    if true then -- set to true to enable debug
+    if false then -- set to true to enable debug
         print("|cff66ccff[DJ_Debug]|r", msg, ...)
     end
 end

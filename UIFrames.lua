@@ -957,6 +957,10 @@ function LoadDungeonDetail(dungeon, versionIndex)
     end
     Valanior_DJ.currentVersionIndex = versionIndex
 
+    if not Valanior_DJ.recacheScheduled then
+        Valanior_DJ.recacheScheduled = {}
+    end
+
     local currentTime = GetTime()
     if Valanior_DJ.viewAllItems then
         local forceRecache = false

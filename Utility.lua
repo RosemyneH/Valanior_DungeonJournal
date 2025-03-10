@@ -219,7 +219,6 @@ local function ProcessCacheQueue()
         pcall(function() tip:SetHyperlink(hyperlink) end)
         tip:Hide()
         tip = nil
-        debugPrint("Processed cached item:", itemID)
     end
 end
 
@@ -245,7 +244,6 @@ end
 local function CacheItem(itemID)
     local numID = tonumber(itemID)
     if not numID then
-        debugPrint("CacheItem: invalid itemID", itemID)
         return
     end
     local tip = CreateFrame("GameTooltip", nil, UIParent)
@@ -259,16 +257,12 @@ end
 
 
 local function PreCacheDungeonVersion(dungeon, version, force)
-    debugPrint("PreCacheDungeonVersion called for dungeon:", dungeon.name, "version:", version and version.name, "force:",
-        force)
     if not dungeon or not dungeon.items then
-        debugPrint("  No items found or dungeon is nil, returning.")
         return
     end
     Valanior_DJ.cached = Valanior_DJ.cached or {}
     local key = dungeon.name .. (version and ("_" .. (version.name or "default")) or "_default")
     if not force and Valanior_DJ.cached[key] then
-        debugPrint("  Already cached, skipping.")
         return
     end
     Valanior_DJ.cached[key] = true
@@ -282,8 +276,6 @@ local function PreCacheDungeonVersion(dungeon, version, force)
         if type(id) == "number" then
             local itemID = id + mod
             pcall(function() CacheItem(itemID) end)
-        else
-            debugPrint("PreCacheDungeonVersion: non-number id encountered in dungeon", dungeon.name)
         end
     end
 end
