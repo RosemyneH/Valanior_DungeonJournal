@@ -126,10 +126,11 @@ SLASH_DJRECACHE1 = "/djcache"
 SlashCmdList["DJRECACHE"] = function(msg)
     debugPrint("/djcache => resetting caches.")
     Valanior_DJ.cached = {}
-    _G.Valanior_DJ.hasCachedNPCs = false
-    CacheDjDungeonsNPCs()
 end
-
--- Example config slash (remove if unneeded)
+SLASH_DJWIPE = "/djwipe"
+SlashCmdList["DJWIPE"] = function(msg)
+    debugPrint("/djwipe => resetting caches.")
+    _G.Valanior_DJ = {}
+end
 
 debugPrint("Core.lua => Global variables set.")

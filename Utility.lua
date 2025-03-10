@@ -3,6 +3,21 @@
 -- ##################################################################
 debugPrint("Starting creation of Utility")
 
+if not C_Timer then
+    C_Timer = {}
+    function C_Timer.After(delay, func)
+        local f = CreateFrame("Frame")
+        f.elapsed = 0
+        f:SetScript("OnUpdate", function(self, elapsed)
+            self.elapsed = self.elapsed + elapsed
+            if self.elapsed >= delay then
+                self:SetScript("OnUpdate", nil)
+                func()
+            end
+        end)
+    end
+end
+
 local function IsInList(tbl, value)
     for _, v in ipairs(tbl) do
         if v == value then
