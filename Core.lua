@@ -8,7 +8,10 @@ local settings = Valanior_DJ
 local initFrame = CreateFrame("Frame")
 initFrame:RegisterEvent("ADDON_LOADED")
 initFrame:SetScript("OnEvent", function(self, event, arg1)
-    if arg1 == ADDON_NAME then
+    debugPrint(arg1)
+    if arg1 == "Valanior_DungeonJournal" then
+        debugPrint("Creation of Core.lua")
+
         -- Initialize character-specific settings
         settings.showDungeonName = (settings.showDungeonName == nil) and true or settings.showDungeonName
         settings.hasAlreadyCached = settings.hasAlreadyCached or false
@@ -71,12 +74,13 @@ initFrame:SetScript("OnEvent", function(self, event, arg1)
                 Trinket  = true,
             }
         end
-
+        --[[
         local key1, key2 = GetBindingKey("VALANIOR_DJ_TOGGLERUNE")
         if not key1 and not key2 then
             SetBinding("G", "VALANIOR_DJ_TOGGLERUNE")
             SaveBindings(GetCurrentBindingSet())
         end
+        --]]
     end
 end)
 
