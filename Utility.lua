@@ -215,7 +215,7 @@ function IsItemEquippableByClass(itemID, filterIcon)
     return true
 end
 
-local function CacheItem(itemID)
+function CacheItem(itemID)
     local tip = CreateFrame("GameTooltip", "CacheTooltip" .. itemID, nil, "GameTooltipTemplate")
     tip:SetOwner(UIParent, "ANCHOR_NONE")
     tip:SetHyperlink("item:" .. itemID)
