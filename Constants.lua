@@ -47,6 +47,7 @@ _G.slotIcons = {
 
 -- Assign weaponTypeList to _G
 _G.weaponTypeList = {
+    "Staff",
     "Daggers",
     "One-Handed Axes",
     "Two-Handed Axes",
@@ -68,6 +69,7 @@ _G.weaponTypeList = {
 
 -- Assign weaponIcons to _G
 _G.weaponIcons = {
+    ["Staff"]             = "Interface\\Icons\\INV_Staff_13",
     ["Daggers"]           = "Interface\\Icons\\inv_dagger_01",
     ["One-Handed Axes"]   = "Interface\\Icons\\inv_axe_04",
     ["Two-Handed Axes"]   = "Interface\\Icons\\inv_axe_08",

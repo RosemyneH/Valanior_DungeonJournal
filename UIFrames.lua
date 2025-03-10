@@ -208,7 +208,7 @@ local function UpdateFilterTypeButton()
     local tex = filterTypeButton:GetNormalTexture()
     if tex then
         tex:SetTexCoord(0, 1, 0, 1)
-        tex:SetSize(15, 15)
+        tex:SetSize(16, 16)
     end
     filterTypeButton:SetHighlightTexture("Interface\\Buttons\\ButtonHilight-Square")
 
@@ -377,6 +377,7 @@ local function VersionDropdown_Initialize(self, level, menuList)
             info.notCheckable = true
             info.func = function()
                 local union = _G.GetAllArmorTypes() or {}
+                -- Ensure allowedArmorType and allowedArmorType[cClass] are defined
                 Valanior_DJ.allowedArmorType = Valanior_DJ.allowedArmorType or {}
                 Valanior_DJ.allowedArmorType[cClass] = Valanior_DJ.allowedArmorType[cClass] or {}
                 local boolMap = {}
@@ -399,7 +400,17 @@ local function VersionDropdown_Initialize(self, level, menuList)
             end
             UIDropDownMenu_AddButton(info, level)
 
-            local allowed = (Valanior_DJ.allowedArmorType and Valanior_DJ.allowedArmorType[cClass]) or {}
+            -- Ensure allowedArmorType exists
+            Valanior_DJ.allowedArmorType = Valanior_DJ.allowedArmorType or {}
+            Valanior_DJ.allowedArmorType[cClass] = Valanior_DJ.allowedArmorType[cClass] or {}
+            local allowed = Valanior_DJ.allowedArmorType[cClass]
+
+            local armorTypeIcons = {
+                Cloth   = "Interface\\Icons\\INV_Chest_Cloth_26",
+                Leather = "Interface\\Icons\\INV_Chest_Leather_14",
+                Mail    = "Interface\\Icons\\INV_Chest_Mail_15",
+                Plate   = "Interface\\Icons\\INV_Chest_Plate20",
+            }
             for _, armorType in ipairs(_G.GetAllArmorTypes() or {}) do
                 local info = UIDropDownMenu_CreateInfo()
                 info.text = armorType
@@ -425,7 +436,7 @@ local function VersionDropdown_Initialize(self, level, menuList)
                     end
                     UpdateFilterDropdownSummary()
                 end
-                info.icon = "Interface\\Icons\\INV_Armor_" .. armorType
+                info.icon = armorTypeIcons[armorType] or "Interface\\Icons\\INV_Misc_QuestionMark"
                 UIDropDownMenu_AddButton(info, level)
             end
         elseif menuList == "WEAPON_TYPES" then
@@ -456,7 +467,11 @@ local function VersionDropdown_Initialize(self, level, menuList)
             end
             UIDropDownMenu_AddButton(info, level)
 
-            local allowed = (Valanior_DJ.allowedWeaponType and Valanior_DJ.allowedWeaponType[cClass]) or {}
+            -- Ensure allowedWeaponType and allowedWeaponType[cClass] are defined
+            Valanior_DJ.allowedWeaponType = Valanior_DJ.allowedWeaponType or {}
+            Valanior_DJ.allowedWeaponType[cClass] = Valanior_DJ.allowedWeaponType[cClass] or {}
+            local allowed = Valanior_DJ.allowedWeaponType[cClass]
+
             for _, wType in ipairs(_G.weaponTypeList or {}) do
                 local info = UIDropDownMenu_CreateInfo()
                 info.text = wType
@@ -483,7 +498,11 @@ local function VersionDropdown_Initialize(self, level, menuList)
                     UpdateFilterDropdownSummary()
                 end
                 local ic = _G.weaponIcons and _G.weaponIcons[wType]
-                if ic then info.icon = ic end
+                if ic then
+                    info.icon = ic
+                else
+                    info.icon = "Interface\\Icons\\INV_Misc_QuestionMark"
+                end
                 UIDropDownMenu_AddButton(info, level)
             end
         end
@@ -723,16 +742,27 @@ local function FindDungeonByName(dName)
     end
 end
 
-local function PassesFilterIcon(iType, iSubType, eLoc, filterIcon)
+function PassesFilterIcon(iType, iSubType, eLoc, filterIcon)
+    local function NormalizeWeaponSubType(subType)
+        if subType == "Staves" then
+            return "Staff"
+        end
+        return subType
+    end
+
     if filterIcon == "All" then
         return true
     end
 
     if filterIcon == "Weapons" then
-        if iType == "Weapon" then return true end
+        if iType == "Weapon" then
+            iSubType = NormalizeWeaponSubType(iSubType)
+            return true
+        end
         if iType == "Armor" and (iSubType == "Shields" or eLoc == "INVTYPE_HOLDABLE") then
             return true
         end
+        return false
     end
 
     if filterIcon == "Armor" then
@@ -744,7 +774,6 @@ local function PassesFilterIcon(iType, iSubType, eLoc, filterIcon)
 
     return true
 end
-
 
 function PrepareItemsToShow(dungeon, versionIndex)
     local itemsToShow = {}

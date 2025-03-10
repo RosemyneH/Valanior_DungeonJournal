@@ -93,6 +93,7 @@ end
 function IsItemEquippableByClass(itemID, filterIcon)
     local itemName, link, quality, _, _, itemType, itemSubType, _, equipLoc = GetItemInfo(itemID)
     if not itemName then
+        debugPrint("IsItemEquippableByClass:", itemID, "not cached => false")
         return false
     end
 
@@ -101,108 +102,112 @@ function IsItemEquippableByClass(itemID, filterIcon)
     local weaponTypes  = Valanior_DJ.allowedWeaponType and Valanior_DJ.allowedWeaponType[cClass] or {}
     local allowedSlots = Valanior_DJ.allowedArmorSlots or {}
 
-    -- If user hasn't filtered subTypes => pass
+    -- If no filters are set, pass the item.
     if (#armorTypes == 0) and (#weaponTypes == 0) then
         return true
     end
 
-    -- If filterIcon=="Weapons" => skip armor checks
-    -- If filterIcon=="Armor" => skip weapon checks
-    local armorCount  = #armorTypes
-    local weaponCount = #weaponTypes
+    -- Define a mapping for equip slots.
+    local slotMap = {
+        INVTYPE_HEAD     = "Head",
+        INVTYPE_NECK     = "Neck",
+        INVTYPE_SHOULDER = "Shoulder",
+        INVTYPE_CLOAK    = "Back",
+        INVTYPE_CHEST    = "Chest",
+        INVTYPE_BODY     = "Shirt",
+        INVTYPE_TABARD   = "Tabard",
+        INVTYPE_WRIST    = "Wrist",
+        INVTYPE_HAND     = "Hands",
+        INVTYPE_WAIST    = "Waist",
+        INVTYPE_LEGS     = "Legs",
+        INVTYPE_FEET     = "Feet",
+        INVTYPE_FINGER   = "Finger",
+        INVTYPE_TRINKET  = "Trinket",
+    }
+    local slotKey = slotMap[equipLoc or ""]
+
+    -- Define slots that should ignore armor type filtering.
+    local ignoreArmorTypeSlots = {
+        Neck = true,
+        Finger = true,
+        Trinket = true,
+        Back = true
+    }
+
+    -- If filtering by Weapons only, run only the weapon logic.
     if filterIcon == "Weapons" then
-        armorCount = 0
-    elseif filterIcon == "Armor" then
-        weaponCount = 0
+        if itemType == "Weapon" then
+            return _G.IsInList(weaponTypes, itemSubType)
+        elseif itemType == "Armor" and (itemSubType == "Shields" or equipLoc == "INVTYPE_HOLDABLE") then
+            for _, wType in ipairs(weaponTypes) do
+                if (itemSubType == "Shields" and wType == "Shield") or
+                    (equipLoc == "INVTYPE_HOLDABLE" and wType == "Off-hand") then
+                    return true
+                end
+            end
+            return false
+        else
+            return false
+        end
     end
 
-    if (armorCount > 0) and (weaponCount == 0) then
+    -- If filtering by Armor only, run only armor logic.
+    if filterIcon == "Armor" then
         if itemType ~= "Armor" then
-            -- except special: if itemType=="Armor" but subType=="Shields"/holdable => considered weapon
-            if not (itemSubType == "Shields" or equipLoc == "INVTYPE_HOLDABLE") then
-                return false
-            end
-        end
-    elseif (weaponCount > 0) and (armorCount == 0) then
-        if itemType ~= "Weapon" then
-            if not (itemSubType == "Shields" or equipLoc == "INVTYPE_HOLDABLE") then
-                return false
-            end
-        end
-    end
-
-    -- Check Weapons (Shields/Off-hand) logic
-    if itemType == "Armor" and (itemSubType == "Shields" or equipLoc == "INVTYPE_HOLDABLE") then
-        if #weaponTypes == 0 then
             return false
         end
-        for _, wType in ipairs(weaponTypes) do
-            if (itemSubType == "Shields" and wType == "Shield") or
-                (equipLoc == "INVTYPE_HOLDABLE" and wType == "Off-hand") then
-                return true
-            end
+        if slotKey and ignoreArmorTypeSlots[slotKey] then
+            return allowedSlots[slotKey] == true
         end
-        return false
-    end
-
-    -- If item is "Weapon"
-    if itemType == "Weapon" then
-        if #weaponTypes == 0 then
-            return true
-        end
-        for _, wType in ipairs(weaponTypes) do
-            if wType == itemSubType then
-                return true
-            end
-        end
-        return false
-    end
-
-    -- If item is "Armor"
-    if itemType == "Armor" then
-        local slotMap = {
-            INVTYPE_HEAD     = "Head",
-            INVTYPE_NECK     = "Neck",
-            INVTYPE_SHOULDER = "Shoulder",
-            INVTYPE_CLOAK    = "Back",
-            INVTYPE_CHEST    = "Chest",
-            INVTYPE_BODY     = "Shirt",
-            INVTYPE_TABARD   = "Tabard",
-            INVTYPE_WRIST    = "Wrist",
-            INVTYPE_HAND     = "Hands",
-            INVTYPE_WAIST    = "Waist",
-            INVTYPE_LEGS     = "Legs",
-            INVTYPE_FEET     = "Feet",
-            INVTYPE_FINGER   = "Finger",
-            INVTYPE_TRINKET  = "Trinket",
-        }
-        local slotKey = slotMap[equipLoc or ""]
-        if not slotKey then
-            return false
-        end
-
-        -- Special: if slotKey=="Back", ignore armor type
-        if slotKey == "Back" then
-            -- Just check if user toggled "Back" in allowedArmorSlots
-            return (allowedSlots[slotKey] == true)
-        end
-
-        -- Otherwise must match user’s chosen subType
         if #armorTypes > 0 then
-            local found = false
+            local foundType = false
             for _, t in ipairs(armorTypes) do
                 if t == itemSubType then
-                    found = true
+                    foundType = true
                     break
                 end
             end
-            if not found then
+            if not foundType then
                 return false
             end
         end
+        if slotKey then
+            return allowedSlots[slotKey] == true
+        end
+        return false
+    end
 
-        -- Then check the slot
-        return (allowedSlots[slotKey] == true)
+    -- If filterIcon is "All", check based on item type:
+    if filterIcon == "All" then
+        if itemType == "Armor" then
+            if slotKey and ignoreArmorTypeSlots[slotKey] then
+                return allowedSlots[slotKey] == true
+            else
+                if #armorTypes > 0 then
+                    local foundType = false
+                    for _, t in ipairs(armorTypes) do
+                        if t == itemSubType then
+                            foundType = true
+                            break
+                        end
+                    end
+                    if not foundType then
+                        return false
+                    end
+                end
+                if slotKey then
+                    return allowedSlots[slotKey] == true
+                end
+                return false
+            end
+        elseif itemType == "Weapon" then
+            if #weaponTypes == 0 then
+                return true
+            end
+            return _G.IsInList(weaponTypes, itemSubType)
+        else
+            return true
+        end
     end
 
     return true
