@@ -54,7 +54,7 @@ local totalPages         = 1
 
 local versionDropdown    = CreateFrame("Frame", "ValaniorDJ_VersionDropdown", DungeonJournalFrame,
     "UIDropDownMenuTemplate")
-versionDropdown:SetPoint("TOPRIGHT", DungeonJournalFrame, "TOPRIGHT", 0, -30)
+versionDropdown:SetPoint("TOPRIGHT", DungeonJournalFrame, "TOPRIGHT", -30, -30)
 UIDropDownMenu_SetWidth(versionDropdown, 130)
 
 local viewAllButton = CreateFrame("CheckButton", "ValaniorDJ_ViewAllCheckButton", DungeonJournalFrame,
@@ -77,10 +77,32 @@ toggleEquippableButton:SetFrameLevel(DungeonJournalFrame:GetFrameLevel() + 20)
 toggleEquippableButton:SetText("Equip?")
 
 local filterTypeButton = CreateFrame("Button", nil, DungeonJournalFrame)
-filterTypeButton:SetSize(15, 15)
-filterTypeButton:SetPoint("RIGHT", mainCloseButton, "LEFT", -35, 0)
+filterTypeButton:SetSize(24, 24)
+filterTypeButton:SetPoint("RIGHT", mainCloseButton, "LEFT", 5, -25)
 filterTypeButton:SetFrameStrata("DIALOG")
 filterTypeButton:SetFrameLevel(DungeonJournalFrame:GetFrameLevel() + 20)
+
+local function UpdateFilterTooltipText(button)
+    if GameTooltip:IsShown() and GameTooltip:GetOwner() == button then
+        GameTooltip:ClearLines()
+        GameTooltip:SetPoint("BOTTOM", self, "TOP", 0, 0)
+        GameTooltip:AddLine("Filter Mode: " .. (DJ_Settings.filterType or "All"))
+        GameTooltip:Show()
+    end
+end
+
+filterTypeButton:SetScript("OnEnter", function(self)
+    GameTooltip:SetOwner(self)
+    GameTooltip:ClearLines()
+    GameTooltip:SetPoint("BOTTOM", self, "TOP", 0, 0)
+    GameTooltip:AddLine("Filter Mode: " .. (DJ_Settings.filterType or "All"))
+    GameTooltip:Show()
+end)
+
+
+filterTypeButton:SetScript("OnLeave", function(self)
+    GameTooltip:Hide()
+end)
 
 local function HideDungeonInteriorUI()
     versionDropdown:Hide()
@@ -208,7 +230,7 @@ local function UpdateFilterTypeButton()
     local tex = filterTypeButton:GetNormalTexture()
     if tex then
         tex:SetTexCoord(0, 1, 0, 1)
-        tex:SetSize(16, 16)
+        tex:SetSize(24, 24)
     end
     filterTypeButton:SetHighlightTexture("Interface\\Buttons\\ButtonHilight-Square")
 
@@ -225,17 +247,32 @@ end
 
 UpdateFilterTypeButton()
 
-filterTypeButton:SetScript("OnClick", function()
+filterTypeButton:SetScript("OnClick", function(self)
     currentFilterIndex = currentFilterIndex + 1
     if currentFilterIndex > #filterTypeOptions then
         currentFilterIndex = 1
     end
-
     UpdateFilterTypeButton()
     Valanior_DJ.currentItemPage = 1
-
     if _G.currentDungeon then
         LoadDungeonDetail(_G.currentDungeon, Valanior_DJ.currentVersionIndex)
+    end
+
+    if C_Timer and C_Timer.After then
+        C_Timer.After(0.1, function()
+            if GameTooltip:IsShown() and GameTooltip:GetOwner() == self then
+                GameTooltip:ClearLines()
+                GameTooltip:SetPoint("BOTTOM", self, "TOP", 0, 0)
+                GameTooltip:AddLine("Filter Mode: " .. (DJ_Settings.filterType or "All"))
+                GameTooltip:Show()
+            end
+        end)
+    else
+        -- Fallback: Update immediately if no timer available.
+        GameTooltip:ClearLines()
+        GameTooltip:SetPoint("BOTTOM", self, "TOP", 0, 0)
+        GameTooltip:AddLine("Filter Mode: " .. (DJ_Settings.filterType or "All"))
+        GameTooltip:Show()
     end
 end)
 
