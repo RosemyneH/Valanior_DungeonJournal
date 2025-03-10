@@ -1,6 +1,7 @@
 ## Interface: 30300
-## Title: Valanior Journal
-## Notes: Displays loot for dungeons.
+## Title: |cffFFFF00Valanior|r |cffFF4500Journal|r - TEMPORARY VERSION
+## Notes: |cffFF8C00Addon to |cffFFFF00Valanior|r |cffFF8C00that displays loot for dungeons.|r
+## Author: Rosemyne
 ## Version: 1.0
 ## SavedVariablesPerCharacter: Valanior_DJ
 
