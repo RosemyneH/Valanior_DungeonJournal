@@ -8,10 +8,7 @@ local settings = Valanior_DJ
 local initFrame = CreateFrame("Frame")
 initFrame:RegisterEvent("ADDON_LOADED")
 initFrame:SetScript("OnEvent", function(self, event, arg1)
-    debugPrint(arg1)
     if arg1 == "Valanior_DungeonJournal" then
-        debugPrint("Creation of Core.lua")
-
         -- Initialize character-specific settings
         settings.showDungeonName = (settings.showDungeonName == nil) and true or settings.showDungeonName
         settings.hasAlreadyCached = settings.hasAlreadyCached or false
@@ -84,7 +81,6 @@ initFrame:SetScript("OnEvent", function(self, event, arg1)
     end
 end)
 
-debugPrint("Creation of Core.lua")
 
 -- Globals / saved variables
 -- Put these in _G if you want other files to reference them easily
@@ -106,17 +102,13 @@ print("|cff66ccff[DJ_Debug]|r # of dungeons in _G.Valanior.djDungeons =", #dunge
 local f = CreateFrame("Frame")
 f:RegisterEvent("PLAYER_LOGIN")
 f:SetScript("OnEvent", function(self, event, ...)
-    debugPrint("PLAYER_LOGIN => DungeonJournalFrame loaded.")
 end)
 
 -- Slash command to toggle
 SLASH_DJ1 = "/dj"
 SlashCmdList["DJ"] = function(msg)
-    debugPrint("Slash command /dj executed. DungeonJournalFrame =", DungeonJournalFrame)
     if DungeonJournalFrame then
         DungeonJournalFrame:Show()
-        debugPrint("DungeonJournalFrame:Show() called")
-    else
         debugPrint("DungeonJournalFrame is nil!")
     end
 end
@@ -132,5 +124,3 @@ SlashCmdList["DJWIPE"] = function(msg)
     debugPrint("/djwipe => resetting caches.")
     _G.Valanior_DJ = {}
 end
-
-debugPrint("Core.lua => Global variables set.")

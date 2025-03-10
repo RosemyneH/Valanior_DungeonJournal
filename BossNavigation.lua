@@ -40,8 +40,6 @@ end
 -- Start the preloading process.
 PreloadNextBossModel()
 --]] --
-debugPrint("Starting creation of BossNavigation")
-
 local BOSS_TRANSFORMS = _G.BOSS_TRANSFORMS or {}
 
 -------------------------------------------------------------------
@@ -51,18 +49,13 @@ local BOSS_TRANSFORMS = _G.BOSS_TRANSFORMS or {}
 -- uses bossID as the table key
 -------------------------------------------------------------------
 local function ApplyBossTransforms(frame, displayID)
-    debugPrint("ApplyBossTransforms: attempting to apply transforms for displayID:", displayID)
     local transform = BOSS_TRANSFORMS[displayID]
     if transform then
-        debugPrint("ApplyBossTransforms: found transform => facing:", transform.facing,
-            "pos(z,x,y):", transform.z, transform.x, transform.y,
-            "scale:", transform.scale)
         frame:SetFacing(transform.facing or 0)
         -- PlayerModel uses param order: (z, x, y)
         frame:SetPosition(transform.z or 0, transform.x or 0, transform.y or 0)
         frame:SetScale(transform.scale or 1)
     else
-        debugPrint("ApplyBossTransforms: no transform found for displayID:", displayID, "=> using defaults")
         frame:SetFacing(0)
         frame:SetPosition(0, 0, 0)
         frame:SetScale(1)
@@ -113,7 +106,6 @@ local function SetupModelFrame(dungeon, bossData, bossKey, bossLeveled)
         modelFrame:SetCreature(bossData.bossID)
         ApplyBossTransforms(modelFrame, displayID)
     else
-        debugPrint("SetupModelFrame: bossData.bossID not found => skipping SetDisplayInfo/SetCreature")
     end
 
     -- Set neutral defaults before loading
@@ -216,7 +208,6 @@ local function SetupMouseHandlers(bossKey)
             end
 
             if Valanior_DJ.leveledBoss[bossKey] then
-                debugPrint("FORCE STORY SHOW")
                 self.storyButton:Show()
             end
 
@@ -224,7 +215,6 @@ local function SetupMouseHandlers(bossKey)
             if not Valanior_DJ.leveledBoss[bossKey] then
                 self.levelUpClickCount = self.levelUpClickCount + 1
 
-                debugPrint("levelUpClickCount: => ", Valanior_DJ.levelUpClickCount[bossKey])
                 Valanior_DJ.levelUpClickCount[bossKey] = self.levelUpClickCount
                 if self.levelUpClickCount >= 75 then
                     self:SetSequenceTime(148, 3)
@@ -257,7 +247,6 @@ local activeBossIndex = 0
 -------------------------------------------------------------------
 local function ShowBoss(dungeon)
     if not dungeon or not dungeon.bosses or #dungeon.bosses == 0 then
-        debugPrint("ShowBoss: invalid dungeon or no bosses.")
         return
     end
 
@@ -265,7 +254,6 @@ local function ShowBoss(dungeon)
     local index = dungeon.currentBossIndex
 
     if activeDungeon == dungeon and activeBossIndex == index then
-        debugPrint("ShowBoss: same dungeon + same boss index => skipping redraw.")
         return
     end
 
@@ -274,11 +262,9 @@ local function ShowBoss(dungeon)
 
     local bossData = dungeon.bosses[index]
     if not bossData then
-        debugPrint("  No bossData found at index:", index)
         return
     end
 
-    debugPrint("ShowBoss: now displaying boss index:", index, "of dungeon:", dungeon.name)
 
     Valanior_DJ.leveledBoss = Valanior_DJ.leveledBoss or {}
     Valanior_DJ.levelUpClickCount = Valanior_DJ.levelUpClickCount or {}
@@ -313,15 +299,12 @@ end
 -- Creates the boss navigation frame (with left/right buttons)
 -------------------------------------------------------------------
 local function CreateBossNavigation(dungeonDetailFrame, dungeon)
-    debugPrint("CreateBossNavigation called for dungeon:", dungeon and dungeon.name)
     if not dungeon or not dungeon.bosses or #dungeon.bosses == 0 then
-        debugPrint("  No bosses found or nil dungeon, returning.")
         return
     end
 
     if dungeonDetailFrame.bossNav then
         if dungeonDetailFrame.bossNav.dungeonName ~= dungeon.name then
-            debugPrint("Existing bossNav mismatch; recreating.")
             dungeonDetailFrame.bossNav:Hide()
             dungeonDetailFrame.bossNav = nil
         end
@@ -334,18 +317,14 @@ local function CreateBossNavigation(dungeonDetailFrame, dungeon)
 
         dungeonDetailFrame.bossNav = bossNav
         bossNav.dungeonName = dungeon.name
-        debugPrint("Created new bossNav for dungeon:", dungeon.name)
         bossNav:SetScript("OnShow", function(self)
             if self.dungeonName ~= dungeon.name then
-                debugPrint("OnShow: BossNav dungeon mismatch.")
                 self:Hide()
                 CreateBossNavigation(dungeonDetailFrame, dungeon)
             end
         end)
     else
-        debugPrint("Reusing existing bossNav for dungeon:", bossNav.dungeonName)
         for _, child in ipairs({ bossNav:GetChildren() }) do
-            debugPrint("Hiding child:", child:GetName() or "unnamed")
             child:Hide()
             child:SetParent(nil)
         end
@@ -359,7 +338,6 @@ local function CreateBossNavigation(dungeonDetailFrame, dungeon)
     bossNav.bossNameFontString:ClearAllPoints()
     bossNav.bossNameFontString:SetPoint("TOP", dungeonDetailFrame, "TOP", -180, -50)
     bossNav.bossNameFontString:SetText(" ")
-    debugPrint("Boss name font string set up.")
 
     if not bossNav.spellContainer then
         bossNav.spellContainer = CreateFrame("Frame", "DJ_SpellContainer", dungeonDetailFrame)
@@ -387,10 +365,8 @@ local function CreateBossNavigation(dungeonDetailFrame, dungeon)
 
     bossNav:EnableMouse(true)
     dungeon.currentBossIndex = dungeon.currentBossIndex or 1
-    debugPrint("Setting currentBossIndex to", dungeon.currentBossIndex)
 
     local function showCurrentBoss()
-        debugPrint("showCurrentBoss: currentBossIndex =", dungeon.currentBossIndex)
         ShowBoss(dungeon)
     end
 
@@ -418,5 +394,3 @@ end
 -------------------------------------------------------------------
 _G.ShowBoss = ShowBoss
 _G.CreateBossNavigation = CreateBossNavigation
-
-debugPrint("BossNavigation => Global ShowBoss, CreateBossNavigation set.")

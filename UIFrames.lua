@@ -30,12 +30,11 @@ local mainCloseButton = CreateFrame("Button", nil, DungeonJournalFrame, "UIPanel
 mainCloseButton:SetPoint("TOPRIGHT", DungeonJournalFrame, "TOPRIGHT", 4, -4)
 mainCloseButton:SetSize(25, 25)
 
-_G.itemButtonCache    = _G.itemButtonCache or {}
-_G.lastBossNavDungeon = _G.lastBossNavDungeon or nil
-_G.currentDungeon     = _G.currentDungeon or nil
+_G.itemButtonCache              = _G.itemButtonCache or {}
+_G.lastBossNavDungeon           = _G.lastBossNavDungeon or nil
+_G.currentDungeon               = _G.currentDungeon or nil
 
-local dungeonData     = _G.Valanior and _G.Valanior.djDungeons or {}
-debugPrint("UIFrames.lua => # dungeons:", #dungeonData)
+local dungeonData               = _G.Valanior and _G.Valanior.djDungeons or {}
 
 Valanior_DJ.viewAllItems        = Valanior_DJ.viewAllItems or false
 Valanior_DJ.currentItemPage     = Valanior_DJ.currentItemPage or 1
@@ -654,7 +653,6 @@ local function BatchCacheDungeonItems(dungeon, version, startIndex)
     startIndex = startIndex or 1
     local items = dungeon.items
     if not items then
-        debugPrint("BatchCacheDungeonItems: no items in dungeon", dungeon.name)
         return
     end
 
@@ -674,12 +672,9 @@ local function BatchCacheDungeonItems(dungeon, version, startIndex)
             BatchCacheDungeonItems(dungeon, version, endIndex + 1)
         end)
     else
-        debugPrint("Batch caching complete for dungeon:", dungeon.name)
         if _G.currentDungeon and _G.currentDungeon.name == dungeon.name and type(LoadDungeonDetail) == "function" then
-            debugPrint("Refreshing display for dungeon:", dungeon.name)
             LoadDungeonDetail(_G.currentDungeon, Valanior_DJ.currentVersionIndex)
         else
-            debugPrint("Dungeon", dungeon.name, "cached, but it is not the current dungeon.")
         end
     end
 end
@@ -687,27 +682,21 @@ end
 
 
 local function HandleUncachedItem(adjItemID, dungeon, versionData)
-    debugPrint("HandleUncachedItem =>", adjItemID)
-    debugPrint(Valanior_DJ.viewAllItems)
     if Valanior_DJ.viewAllItems then
         local delay = 1.0
         for _, d in ipairs(_G.dungeonData or {}) do
-            debugPrint(tempschedule[d.name])
             if d.name and not tempschedule[d.name] then
                 tempschedule[d.name] = true
                 C_Timer.After(delay, function()
-                    debugPrint("Batch caching dungeon (all mode):", d.name)
                     BatchCacheDungeonItems(d, versionData, 1)
                 end)
                 delay = delay + 1.0
             end
         end
     else
-        debugPrint(dungeon, dungeon.name, tempschedule[dungeon.name])
         if dungeon and dungeon.name and not tempschedule[dungeon.name] then
             tempschedule[dungeon.name] = true
             C_Timer.After(1.0, function()
-                debugPrint("Batch caching dungeon:", dungeon.name)
                 BatchCacheDungeonItems(dungeon, versionData, 1)
             end)
         end
@@ -968,13 +957,44 @@ function LoadDungeonDetail(dungeon, versionIndex)
     end
     Valanior_DJ.currentVersionIndex = versionIndex
 
+    local currentTime = GetTime()
+    if Valanior_DJ.viewAllItems then
+        local forceRecache = false
+        if not Valanior_DJ.lastRecacheTime or (currentTime - Valanior_DJ.lastRecacheTime) > 5 then
+            forceRecache = true
+        end
+        if Valanior_DJ.lastVersionCached ~= versionIndex then
+            forceRecache = true
+        end
+        if forceRecache then
+            for _, d in ipairs(_G.dungeonData or {}) do
+                if d.name then
+                    Valanior_DJ.recacheScheduled[d.name] = nil
+                    local versionData = (d.versions and d.versions[versionIndex]) or nil
+                    if PreCacheDungeonVersion then
+                        PreCacheDungeonVersion(d, versionData, true)
+                    end
+                end
+            end
+            Valanior_DJ.lastRecacheTime = currentTime
+            Valanior_DJ.lastVersionCached = versionIndex
+        end
+    else
+        if dungeon.name then
+            Valanior_DJ.recacheScheduled[dungeon.name] = nil
+        end
+        local versionData = (dungeon.versions and dungeon.versions[versionIndex]) or nil
+        if PreCacheDungeonVersion then
+            PreCacheDungeonVersion(dungeon, versionData, true)
+        end
+    end
+
     if ShowBoss then
         ShowBoss(dungeon)
     end
-
     HideAllItemButtons()
     _G.currentDungeon = dungeon
-    DungeonJournalFrame.BackgroundTexture:SetTexture("Interface/Addons/Valanior_DungeonJournal/Assets/interface_open")
+    DungeonJournalFrame.BackgroundTexture:SetTexture("Interface/AddOns/Valanior_DungeonJournal/Assets/interface_open")
     previewFrame:Hide()
     dungeonDetailFrame:Show()
     ShowDungeonInteriorUI()
@@ -1079,7 +1099,7 @@ do
             if PreCacheDungeonVersion then
                 local versionIndex = Valanior_DJ.currentVersionIndex or 1
                 local versionData = (d.versions and d.versions[versionIndex]) or nil
-                PreCacheDungeonVersion(d, versionData, true)
+                PreCacheDungeonVersion(d, versionData)
             end
             self.tex:SetVertexColor(0.7, 0.7, 0.7)
             GameTooltip:SetOwner(self, "ANCHOR_BOTTOM", 0, -5)
@@ -1102,5 +1122,3 @@ previewFrame:Show()
 _G.DungeonJournalFrame = DungeonJournalFrame
 _G.LoadDungeonDetail   = LoadDungeonDetail
 _G.UpdateDungeonNames  = UpdateDungeonNames
-
-debugPrint("UIFrames.lua => Final version with All Dungeons button always clickable.")

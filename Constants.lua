@@ -7,9 +7,6 @@ _G.debugPrint = function(msg, ...)
         print("|cff66ccff[DJ_Debug]|r", msg, ...)
     end
 end
-debugPrint("Global debugPrint defined")
-
-debugPrint("Creation of Constants.lua")
 
 
 _G.BOSS_TRANSFORMS = {
@@ -89,5 +86,3 @@ _G.weaponIcons = {
     ["Idols"]             = "Interface\\Icons\\inv_relics_idol",
     ["Totems"]            = "Interface\\Icons\\inv_relics_totem",
 }
-
-debugPrint("Constants.lua => Global constants assigned.")

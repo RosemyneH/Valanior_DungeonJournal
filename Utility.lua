@@ -1,7 +1,6 @@
 -- ##################################################################
 -- # UTILITY FUNCTIONS
 -- ##################################################################
-debugPrint("Starting creation of Utility")
 
 if not C_Timer then
     C_Timer = {}
@@ -52,7 +51,6 @@ end
 
 -- Always include base: Cloth, Leather, Mail, Plate
 local function GetAllArmorTypes()
-    debugPrint("GetAllArmorTypes called.")
     local baseArmor = { "Cloth", "Leather", "Mail", "Plate" }
     local union, seen = {}, {}
 
@@ -63,7 +61,6 @@ local function GetAllArmorTypes()
 
     if Valanior_DJ.allowedArmorType then
         for className, armorList in pairs(Valanior_DJ.allowedArmorType) do
-            debugPrint("  Checking class:", className, armorList and (#armorList .. " entries") or "nil list")
             if armorList then
                 for _, t in ipairs(armorList) do
                     if not seen[t] then
@@ -76,14 +73,12 @@ local function GetAllArmorTypes()
     end
 
     table.sort(union)
-    debugPrint("  Returning union of armor types:", table.concat(union, ", "))
     return union
 end
 
 local function GetAllWeaponTypes()
     local union, seen = {}, {}
     local currentClass = GetCurrentClass()
-    debugPrint("GetAllWeaponTypes called for class:", currentClass)
     local weaponTypes = Valanior_DJ.allowedWeaponType and Valanior_DJ.allowedWeaponType[currentClass] or {}
     for _, t in ipairs(weaponTypes) do
         if not seen[t] then
@@ -92,14 +87,12 @@ local function GetAllWeaponTypes()
         end
     end
     table.sort(union)
-    debugPrint("  union of weapon types:", table.concat(union, ", "))
     return union
 end
 
 function IsItemEquippableByClass(itemID, filterIcon)
     local itemName, link, quality, _, _, itemType, itemSubType, _, equipLoc = GetItemInfo(itemID)
     if not itemName then
-        debugPrint("IsItemEquippableByClass:", itemID, "not cached => false")
         return false
     end
 
@@ -215,12 +208,55 @@ function IsItemEquippableByClass(itemID, filterIcon)
     return true
 end
 
-function CacheItem(itemID)
-    local tip = CreateFrame("GameTooltip", "CacheTooltip" .. itemID, nil, "GameTooltipTemplate")
+local cacheQueue = cacheQueue or {}
+
+local function ProcessCacheQueue()
+    if #cacheQueue > 0 then
+        local itemID = table.remove(cacheQueue, 1)
+        local tip = CreateFrame("GameTooltip", nil, UIParent, "GameTooltipTemplate")
+        tip:SetOwner(UIParent, "ANCHOR_NONE")
+        local hyperlink = string.format("item:%d:0:0:0:0:0:0:0", itemID)
+        pcall(function() tip:SetHyperlink(hyperlink) end)
+        tip:Hide()
+        tip = nil
+        debugPrint("Processed cached item:", itemID)
+    end
+end
+
+-- Create a ticker to process one item every 1/120 seconds (approx. 120 items per second)
+if not cacheTicker then
+    if C_Timer and C_Timer.NewTicker then
+        cacheTicker = C_Timer.NewTicker(1 / 120, ProcessCacheQueue)
+    else
+        local f = CreateFrame("Frame")
+        f.elapsed = 0
+        f:SetScript("OnUpdate", function(self, elapsed)
+            self.elapsed = self.elapsed + elapsed
+            if self.elapsed >= 1 / 120 then
+                self.elapsed = 0
+                ProcessCacheQueue()
+            end
+        end)
+        cacheTicker = f
+    end
+end
+
+-- Throttled CacheItem function: Enqueues an item for caching.
+local function CacheItem(itemID)
+    local numID = tonumber(itemID)
+    if not numID then
+        debugPrint("CacheItem: invalid itemID", itemID)
+        return
+    end
+    local tip = CreateFrame("GameTooltip", nil, UIParent)
     tip:SetOwner(UIParent, "ANCHOR_NONE")
     tip:SetHyperlink("item:" .. itemID)
     debugPrint("Caching item:", itemID)
+    tip:Hide()
+    tip = nil
 end
+
+
 
 local function PreCacheDungeonVersion(dungeon, version, force)
     debugPrint("PreCacheDungeonVersion called for dungeon:", dungeon.name, "version:", version and version.name, "force:",
@@ -230,26 +266,31 @@ local function PreCacheDungeonVersion(dungeon, version, force)
         return
     end
     Valanior_DJ.cached = Valanior_DJ.cached or {}
-    local key = dungeon.name .. (version and ("_" .. version.name) or "_default")
+    local key = dungeon.name .. (version and ("_" .. (version.name or "default")) or "_default")
     if not force and Valanior_DJ.cached[key] then
         debugPrint("  Already cached, skipping.")
         return
     end
     Valanior_DJ.cached[key] = true
 
+    local mod = 0
     if version then
-        for _, id in ipairs(dungeon.items) do
-            CacheItem(id + version.modifier)
-        end
-    else
-        for _, id in ipairs(dungeon.items) do
-            CacheItem(id)
+        mod = version.modifier or 0
+    end
+
+    for _, id in ipairs(dungeon.items) do
+        if type(id) == "number" then
+            local itemID = id + mod
+            pcall(function() CacheItem(itemID) end)
+        else
+            debugPrint("PreCacheDungeonVersion: non-number id encountered in dungeon", dungeon.name)
         end
     end
 end
 
+
+
 local function ClearSpellFrames()
-    debugPrint("ClearSpellFrames called.")
     if spellContainer then
         for _, child in ipairs({ spellContainer:GetChildren() }) do
             child:Hide()
@@ -266,5 +307,3 @@ _G.IsItemEquippableByClass = IsItemEquippableByClass
 _G.CacheItem               = CacheItem
 _G.PreCacheDungeonVersion  = PreCacheDungeonVersion
 _G.ClearSpellFrames        = ClearSpellFrames
-
-debugPrint("Utility.lua => All utility functions assigned to _G.")
