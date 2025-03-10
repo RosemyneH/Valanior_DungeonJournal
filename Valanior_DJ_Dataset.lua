@@ -654,7 +654,7 @@ table.insert(_G.Valanior.djDungeons, {
     },
     versions = mp_versions,
     items = { 197501, 210001, 210501, 673501, 200501, 201001, 201501, 209501, 198001, 198501, 199001, 674001, 199501, 200001, 211001, 674501, 202001, 202501, 212001, 675001, 203001, 203501, 204001, 212501, 213001, 213501 },
-    droplocation = { [[Grubbis]], [[Grubbis]], [[Grubbis]], [[Grubbis]], [[Viscous Fallout]], [[Viscous Fallout]], [[Viscous Fallout]], [[Viscous Fallout]], [[Electrocutioner 6010]], [[Electrocutioner 6011]], [[Electrocutioner 6012]], [[Electrocutioner 6013]], [[Crowd Pummeler 9-60]], [[Crowd Pummeler 9-60]], [[Crowd Pummeler 9-60]], [[Crowd Pummeler 9-60]], [[Dark Iron Ambassador]], [[Dark Iron Ambassador]], [[Dark Iron Ambassador]], [[Dark Iron Ambassador]], [[Mekgineer Thermaplugg]], [[Mekgineer Thermaplugg]], [[Mekgineer Thermaplugg]], [[Mekgineer Thermaplugg]], [[Mekgineer Thermaplugg]], [[Mekgineer Thermaplugg]] }
+    droplocation = { [[Grubbis]], [[Grubbis]], [[Grubbis]], [[Grubbis]], [[Viscous Fallout]], [[Viscous Fallout]], [[Viscous Fallout]], [[Viscous Fallout]], [[Electrocutioner 6000]], [[Electrocutioner 6000]], [[Electrocutioner 6000]], [[Electrocutioner 6000]], [[Crowd Pummeler 9-60]], [[Crowd Pummeler 9-60]], [[Crowd Pummeler 9-60]], [[Crowd Pummeler 9-60]], [[Dark Iron Ambassador]], [[Dark Iron Ambassador]], [[Dark Iron Ambassador]], [[Dark Iron Ambassador]], [[Mekgineer Thermaplugg]], [[Mekgineer Thermaplugg]], [[Mekgineer Thermaplugg]], [[Mekgineer Thermaplugg]], [[Mekgineer Thermaplugg]], [[Mekgineer Thermaplugg]] }
 })
 table.insert(_G.Valanior.djDungeons, {
     name = "Scarlet Monastery",
