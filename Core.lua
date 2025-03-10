@@ -24,16 +24,16 @@ initFrame:SetScript("OnEvent", function(self, event, arg1)
         local localizedClass, englishClass = UnitClass("player")
         if not settings.allowedArmorType then
             settings.allowedArmorType = {
-                WARRIOR     = { "Plate", "Mail", "Leather", "Miscellaneous" },
-                DEATHKNIGHT = { "Plate", "Mail", "Leather", "Miscellaneous" },
-                PALADIN     = { "Plate", "Mail", "Leather", "Cloth", "Miscellaneous" },
-                HUNTER      = { "Mail", "Leather", "Miscellaneous" },
-                ROGUE       = { "Leather", "Miscellaneous" },
-                PRIEST      = { "Cloth", "Miscellaneous" },
-                MAGE        = { "Cloth", "Miscellaneous" },
-                WARLOCK     = { "Cloth", "Miscellaneous" },
-                DRUID       = { "Leather", "Cloth", "Miscellaneous" },
-                SHAMAN      = { "Mail", "Leather", "Cloth", "Miscellaneous" },
+                WARRIOR     = { "Plate", "Mail", "Leather" },
+                DEATHKNIGHT = { "Plate", "Mail", "Leather" },
+                PALADIN     = { "Plate", "Mail", "Leather", "Cloth" },
+                HUNTER      = { "Mail", "Leather" },
+                ROGUE       = { "Leather" },
+                PRIEST      = { "Cloth" },
+                MAGE        = { "Cloth" },
+                WARLOCK     = { "Cloth" },
+                DRUID       = { "Leather", "Cloth" },
+                SHAMAN      = { "Mail", "Leather", "Cloth" },
             }
         end
 
