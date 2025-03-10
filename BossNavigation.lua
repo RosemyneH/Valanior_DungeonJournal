@@ -331,15 +331,6 @@ local function CreateBossNavigation(dungeonDetailFrame, dungeon)
     if not bossNav then
         bossNav = CreateFrame("Frame", "DJ_BossNavFrame", dungeonDetailFrame)
         bossNav:SetAllPoints()
-        bossNav:SetMovable(true)
-        bossNav:SetScript("OnDragStart", function(self)
-            debugPrint("bossNav StartMoving")
-            self:StartMoving()
-        end)
-        bossNav:SetScript("OnDragStop", function(self)
-            debugPrint("bossNav StopMoving")
-            self:StopMovingOrSizing()
-        end)
 
         dungeonDetailFrame.bossNav = bossNav
         bossNav.dungeonName = dungeon.name
